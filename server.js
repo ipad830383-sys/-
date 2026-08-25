@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "change-me";
 
 const START_CASH = 1000000;
-const ROUND_SECONDS = 420;
+const ROUND_SECONDS = 180;
 
 const initialPrices = {
   NOVA: 42000,
