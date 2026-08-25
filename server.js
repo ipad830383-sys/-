@@ -1,0 +1,11 @@
+const express=require('express');const http=require('http');const {Server}=require('socket.io');const path=require('path');
+const app=express(),server=http.createServer(app),io=new Server(server);app.use(express.static(path.join(__dirname,'public')));
+const START=1000000, INTERVAL=420;
+const initial={NOVA:42000,GREEN:31500,PIXEL:18700,WAVE:52900,MINT:24100};
+const names={NOVA:'노바테크',GREEN:'그린바이오',PIXEL:'픽셀랩',WAVE:'웨이브모빌',MINT:'민트푸드'};
+let prices={...initial},seconds=INTERVAL,status='waiting';const players=new Map();
+function snapshot(){const leaderboard=[...players.values()].map(p=>{let assets=p.cash;for(const id in p.holdings)assets+=(p.holdings[id]||0)*prices[id];return{id:p.id,name:p.name,assets,returnRate:(assets/START-1)*100}}).sort((a,b)=>b.assets-a.assets);return{prices,names,seconds,status,leaderboard};}
+function broadcast(){io.emit('state',snapshot())}function reset(){prices={...initial};seconds=INTERVAL;status='waiting';players.clear();broadcast()}
+setInterval(()=>{if(status!=='running')return;seconds--;if(seconds<=0){for(const id in prices){const move=Math.random()*.16-.08;prices[id]=Math.max(1000,Math.round(prices[id]*(1+move)/100)*100)}seconds=INTERVAL}broadcast()},1000);
+io.on('connection',s=>{s.emit('state',snapshot());s.on('join',name=>{name=String(name||'').trim().slice(0,20);if(!name)return s.emit('errorMsg','닉네임을 입력해 주세요.');players.set(s.id,{id:s.id,name,cash:START,holdings:{},history:[]});s.emit('joined');broadcast()});s.on('trade',o=>{const p=players.get(s.id);if(!p||status!=='running')return s.emit('errorMsg','게임이 시작된 뒤 거래할 수 있습니다.');const id=o?.id,q=Number(o?.qty),side=o?.side;if(!prices[id]||!Number.isInteger(q)||q<=0)return s.emit('errorMsg','거래 정보를 확인해 주세요.');const total=prices[id]*q;if(side==='buy'){if(total>p.cash)return s.emit('errorMsg','현금이 부족합니다.');p.cash-=total;p.holdings[id]=(p.holdings[id]||0)+q}else if(side==='sell'){if((p.holdings[id]||0)<q)return s.emit('errorMsg','보유 수량이 부족합니다.');p.cash+=total;p.holdings[id]-=q}else return;s.emit('tradeOk');broadcast()});s.on('adminStart',()=>{status='running';seconds=INTERVAL;broadcast()});s.on('adminStop',()=>{status='finished';broadcast()});s.on('adminReset',reset);s.on('disconnect',()=>{players.delete(s.id);broadcast()})});
+const PORT=process.env.PORT||3000;server.listen(PORT,()=>console.log(`http://localhost:${PORT}`));
