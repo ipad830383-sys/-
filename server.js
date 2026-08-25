@@ -48,6 +48,7 @@ const companyNames = {
 let prices = { ...initialPrices };
 let seconds = ROUND_SECONDS;
 let status = "waiting";
+let previousPrices = { ...initialPrices };
 
 const players = new Map();
 const admins = new Set();
@@ -89,14 +90,14 @@ function getState() {
     }));
 
   return {
-    prices,
-    companyNames,
-    seconds,
-    status,
-    leaderboard,
-    playerCount: players.size
-  };
-}
+  prices,
+  previousPrices,
+  companyNames,
+  seconds,
+  status,
+  leaderboard,
+  playerCount: players.size
+};
 
 function broadcast() {
   io.emit("state", getState());
@@ -104,12 +105,15 @@ function broadcast() {
 
 function resetGame() {
   prices = { ...initialPrices };
+  previousPrices = { ...initialPrices };
   seconds = ROUND_SECONDS;
   status = "waiting";
   players.clear();
 }
 
 function changePrices() {
+  previousPrices = { ...prices };
+
   for (const id of Object.keys(prices)) {
     const change = Math.random() * 0.16 - 0.08;
 
