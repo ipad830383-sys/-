@@ -72,7 +72,7 @@ background:#ffdede;
 display:flex;
 align-items:center;
 justify-content:space-between;
-gap:8px;
+gap:10px;
 padding:12px 0;
 border-bottom:1px solid #eee;
 }
@@ -80,6 +80,7 @@ border-bottom:1px solid #eee;
 .actions{
 display:flex;
 gap:5px;
+align-items:center;
 }
 
 .actions input{
@@ -127,7 +128,17 @@ color:#159447;
 color:#d33;
 }
 
-@media(max-width:650px){
+.change{
+font-size:13px;
+font-weight:700;
+margin-top:3px;
+}
+
+.stockInfo{
+min-width:145px;
+}
+
+@media(max-width:700px){
 
 .grid{
 grid-template-columns:1fr;
@@ -137,8 +148,16 @@ grid-template-columns:1fr;
 flex-wrap:wrap;
 }
 
+.stockInfo{
+width:100%;
+}
+
 .actions{
 width:100%;
+}
+
+.actions input{
+width:65px;
 }
 
 }
@@ -150,8 +169,6 @@ width:100%;
 
 <div class="wrap">
 
-<!-- 제목 -->
-
 <div class="card">
 
 <h1>📈 꿈틀꿈틀 모의주식</h1>
@@ -159,8 +176,6 @@ width:100%;
 <div class="muted">
 1인당 가상자금 30만원 · 3분마다 주가 변동
 </div>
-
-<!-- 참가 -->
 
 <div id="login" style="margin-top:12px">
 
@@ -178,9 +193,6 @@ onclick="join()"
 </button>
 
 </div>
-
-
-<!-- 참가 후 정보 -->
 
 <div id="me" class="hidden">
 
@@ -209,7 +221,6 @@ id="assets"
 
 </div>
 
-
 <div class="stat">
 
 현금
@@ -222,7 +233,6 @@ id="cash"
 </div>
 
 </div>
-
 
 <div class="stat">
 
@@ -244,8 +254,6 @@ id="ret"
 </div>
 
 
-<!-- 주식 -->
-
 <div
 class="card"
 id="stocks"
@@ -254,12 +262,14 @@ style="display:none"
 
 <h2>📊 종목</h2>
 
+<div class="muted">
+주가는 3분마다 변동합니다. 변동 금액과 변동률은 직전 가격 기준입니다.
+</div>
+
 <div id="stockList"></div>
 
 </div>
 
-
-<!-- 보유주식 -->
 
 <div
 class="card"
@@ -276,8 +286,6 @@ style="display:none"
 </div>
 
 
-<!-- 순위 -->
-
 <div class="card">
 
 <h2>🏆 실시간 순위</h2>
@@ -289,12 +297,9 @@ style="display:none"
 </div>
 
 
-<!-- 관리자 -->
-
 <div class="card">
 
 <h2>🔐 관리자</h2>
-
 
 <div id="adminLogin">
 
@@ -313,7 +318,6 @@ onclick="adminLogin()"
 
 </div>
 
-
 <div
 id="adminPanel"
 class="hidden"
@@ -328,7 +332,6 @@ class="hidden"
 
 </div>
 
-
 <p>
 
 <button
@@ -338,13 +341,11 @@ onclick="startGame()"
 ▶ 게임 시작
 </button>
 
-
 <button
 onclick="stopGame()"
 >
 ⏹ 게임 종료
 </button>
-
 
 <button
 class="danger"
@@ -352,7 +353,6 @@ onclick="resetGame()"
 >
 ↻ 전체 초기화
 </button>
-
 
 <button
 class="admin"
@@ -378,7 +378,6 @@ class="muted"
 
 <script src="/socket.io/socket.io.js"></script>
 
-
 <script>
 
 const socket = io();
@@ -390,10 +389,15 @@ const $ = id =>
 document.getElementById(id);
 
 
-const won = number =>
+function won(number){
+
+return (
 "₩" +
 Math.round(number)
-.toLocaleString("ko-KR");
+.toLocaleString("ko-KR")
+);
+
+}
 
 
 function join(){
@@ -470,7 +474,9 @@ function downloadResults(){
 
 location =
 "/api/results.csv?socketId=" +
-encodeURIComponent(socket.id);
+encodeURIComponent(
+socket.id
+);
 
 }
 
@@ -482,9 +488,9 @@ side
 
 const quantity =
 Number(
-$("q_" + id).value
+$("q_" + id)
+.value
 ) || 0;
-
 
 socket.emit(
 "trade",
@@ -501,23 +507,25 @@ qty:quantity
 function timer(seconds){
 
 const minutes =
-Math.floor(seconds / 60);
+Math.floor(
+seconds / 60
+);
 
 const sec =
 seconds % 60;
 
 return (
-String(minutes).padStart(2,"0")
+String(minutes)
+.padStart(2,"0")
 +
 ":"
 +
-String(sec).padStart(2,"0")
+String(sec)
+.padStart(2,"0")
 );
 
 }
 
-
-/* 참가 완료 */
 
 socket.on(
 "joined",
@@ -537,8 +545,6 @@ $("me")
 );
 
 
-/* 관리자 로그인 */
-
 socket.on(
 "adminAuth",
 ()=>{
@@ -554,8 +560,6 @@ $("adminPanel")
 }
 );
 
-
-/* 오류 메시지 */
 
 socket.on(
 "errorMsg",
@@ -576,8 +580,6 @@ $("msg").textContent="";
 );
 
 
-/* 서버 상태 */
-
 socket.on(
 "state",
 game=>{
@@ -587,7 +589,7 @@ $("count")
 game.playerCount;
 
 
-/* 게임 상태 */
+/* 상태 */
 
 if(
 game.status === "running"
@@ -595,14 +597,11 @@ game.status === "running"
 
 $("status")
 .innerHTML =
-"🟢 게임 진행 중 · " +
-"다음 주가 변동까지 " +
-"<b>" +
+"🟢 게임 진행 중 · 다음 주가 변동까지 <b>" +
 timer(game.seconds) +
 "</b>";
 
 }
-
 else if(
 game.status === "finished"
 ){
@@ -612,7 +611,6 @@ $("status")
 "🔴 게임 종료 · 최종 결과를 확인하세요.";
 
 }
-
 else{
 
 $("status")
@@ -625,8 +623,7 @@ $("status")
 /* 내 정보 */
 
 const me =
-game.leaderboard
-.find(
+game.leaderboard.find(
 player =>
 player.id === socket.id
 );
@@ -638,11 +635,9 @@ $("assets")
 .textContent =
 won(me.assets);
 
-
 $("cash")
 .textContent =
 won(me.cash);
-
 
 $("ret")
 .textContent =
@@ -652,11 +647,9 @@ me.returnRate >= 0
 : ""
 )
 +
-me.returnRate
-.toFixed(2)
+me.returnRate.toFixed(2)
 +
 "%";
-
 
 $("ret").className =
 "big " +
@@ -667,7 +660,7 @@ me.returnRate >= 0
 );
 
 
-/* 보유주식 */
+/* 보유 주식 */
 
 const holdings =
 Object.entries(
@@ -688,14 +681,13 @@ $("holdList")
 "보유 주식 없음";
 
 }
-
 else{
 
 $("holdList")
 .innerHTML =
 holdings
 .map(
-([id,quantity])=>`
+([id,quantity]) => `
 
 <div class="row">
 
@@ -722,8 +714,6 @@ game.prices[id]
 }
 
 
-/* 주식 화면 */
-
 if(joined){
 
 $("stocks")
@@ -747,7 +737,38 @@ Object.entries(
 game.prices
 )
 .map(
-([id,price])=>`
+([id,price]) => {
+
+const previous =
+game.previousPrices[id];
+
+const difference =
+price - previous;
+
+const percent =
+previous === 0
+? 0
+: (
+difference /
+previous
+) * 100;
+
+const arrow =
+difference > 0
+? "▲"
+: difference < 0
+? "▼"
+: "—";
+
+const changeClass =
+difference > 0
+? "green"
+: difference < 0
+? "red"
+: "muted";
+
+
+return `
 
 <div class="row">
 
@@ -764,44 +785,25 @@ ${id}
 </div>
 
 
-<div style="text-align:right">
+<div class="stockInfo">
 
+<div>
 <b>
 ${won(price)}
 </b>
+</div>
 
-<div class="${
-  price > game.previousPrices[id]
-    ? "green"
-    : price < game.previousPrices[id]
-      ? "red"
-      : "muted"
-}">
+<div class="change ${changeClass}">
 
-${
-  price > game.previousPrices[id]
-    ? "▲"
-    : price < game.previousPrices[id]
-      ? "▼"
-      : "—"
-}
-
+${arrow}
 ${won(
-  Math.abs(price - game.previousPrices[id])
+Math.abs(difference)
 )}
 
 (
-${
-  price === game.previousPrices[id]
-    ? "0.00"
-    :
-    (
-      (price - game.previousPrices[id])
-      / game.previousPrices[id]
-      * 100
-    ).toFixed(2)
-}
-%)
+${difference > 0 ? "+" : ""}
+${percent.toFixed(2)}%
+)
 
 </div>
 
@@ -817,14 +819,12 @@ min="1"
 value="1"
 >
 
-
 <button
 class="buy"
 onclick="trade('${id}','buy')"
 >
 매수
 </button>
-
 
 <button
 class="sell"
@@ -837,7 +837,9 @@ onclick="trade('${id}','sell')"
 
 </div>
 
-`
+`;
+
+}
 )
 .join("");
 
@@ -853,14 +855,13 @@ $("rank")
 "참가자가 없습니다.";
 
 }
-
 else{
 
 $("rank")
 .innerHTML =
 game.leaderboard
 .map(
-player=>`
+player => `
 
 <div class="row">
 
