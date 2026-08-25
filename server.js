@@ -18,7 +18,15 @@ const initialPrices = {
   GREEN: 31500,
   PIXEL: 18700,
   WAVE: 52900,
-  MINT: 24100
+  MINT: 24100,
+
+  ROBOT: 73400,
+  SPACE: 45200,
+  MEDI: 36800,
+  ECO: 28500,
+  FIN: 61000,
+  MEDIA: 22300,
+  HOME: 39600
 };
 
 const companyNames = {
@@ -26,7 +34,15 @@ const companyNames = {
   GREEN: "그린바이오",
   PIXEL: "픽셀랩",
   WAVE: "웨이브모빌",
-  MINT: "민트푸드"
+  MINT: "민트푸드",
+
+  ROBOT: "로보웍스",
+  SPACE: "스페이스원",
+  MEDI: "메디큐어",
+  ECO: "에코파워",
+  FIN: "핀테크원",
+  MEDIA: "미디어픽",
+  HOME: "홈넥스트"
 };
 
 let prices = { ...initialPrices };
