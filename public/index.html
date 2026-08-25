@@ -764,9 +764,48 @@ ${id}
 </div>
 
 
+<div style="text-align:right">
+
 <b>
 ${won(price)}
 </b>
+
+<div class="${
+  price > game.previousPrices[id]
+    ? "green"
+    : price < game.previousPrices[id]
+      ? "red"
+      : "muted"
+}">
+
+${
+  price > game.previousPrices[id]
+    ? "▲"
+    : price < game.previousPrices[id]
+      ? "▼"
+      : "—"
+}
+
+${won(
+  Math.abs(price - game.previousPrices[id])
+)}
+
+(
+${
+  price === game.previousPrices[id]
+    ? "0.00"
+    :
+    (
+      (price - game.previousPrices[id])
+      / game.previousPrices[id]
+      * 100
+    ).toFixed(2)
+}
+%)
+
+</div>
+
+</div>
 
 
 <div class="actions">
