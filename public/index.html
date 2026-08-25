@@ -1,1 +1,873 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>꿈틀꿈틀 모의주식</title><style>*{box-sizing:border-box}body{margin:0;background:#f4f5f7;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;color:#17181a}.wrap{max-width:900px;margin:auto;padding:16px}.card{background:#fff;border-radius:18px;padding:18px;margin:12px 0;box-shadow:0 2px 12px #0000000d}h1{margin:0 0 5px}h2{font-size:19px}.muted{color:#777;font-size:13px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{background:#f7f7f8;border-radius:13px;padding:13px}.big{font-size:21px;font-weight:800;margin-top:4px}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 0;border-bottom:1px solid #eee}.row:last-child{border:0}.actions{display:flex;gap:5px;align-items:center}.actions input{width:55px}input,button{padding:10px;border:1px solid #ddd;border-radius:10px;font-size:15px}button{border:0;font-weight:700}.primary{background:#111;color:white}.buy{background:#eaf1ff;color:#2363d1}.sell{background:#ffeded;color:#d33}.up{color:#d33}.down{color:#2866c7}@media(max-width:600px){.stats{grid-template-columns:1fr}.row{flex-wrap:wrap}.actions{width:100%}}#game{display:none}</style></head><body><div class="wrap"><div class="card"><h1>📈 꿈틀꿈틀 실시간 모의주식</h1><div class="muted">모든 참가자가 같은 주가를 공유합니다.</div><div id="login" style="margin-top:14px"><input id="name" maxlength="20" placeholder="닉네임"><button class="primary" onclick="join()">참가하기</button></div><div id="game"><p id="status"></p><div class="stats"><div class="stat">총자산<div id="assets" class="big">₩1,000,000</div></div><div class="stat">수익률<div id="ret" class="big">0.00%</div></div><div class="stat">현금<div id="cash" class="big">₩1,000,000</div></div></div></div></div><div class="card" id="stocks"><h2>종목</h2><div id="stockList"></div></div><div class="card"><h2>🏆 실시간 순위</h2><div id="rank"></div></div><div class="card"><h2>관리자</h2><button class="primary" onclick="adminStart()">게임 시작</button> <button onclick="adminStop()">게임 종료</button> <button onclick="adminReset()">전체 초기화</button><div class="muted" style="margin-top:8px">진행자 기기에서만 관리 버튼을 사용하세요.</div></div><div id="msg" class="muted"></div></div><script src="/socket.io/socket.io.js"></script><script>const socket=io();let state;const $=x=>document.getElementById(x);const won=n=>'₩'+Math.round(n).toLocaleString('ko-KR');function join(){const n=$('name').value.trim();if(n)socket.emit('join',n)}function fmt(x){return String(Math.floor(x/60)).padStart(2,'0')+':'+String(x%60).padStart(2,'0')}socket.on('joined',()=>{$('login').style.display='none';$('game').style.display='block'});socket.on('errorMsg',m=>{$('msg').textContent=m;setTimeout(()=>$('msg').textContent='',2500)});socket.on('state',s=>{state=s;render()});function trade(id,side){const q=+document.querySelector('#q_'+id).value||0;socket.emit('trade',{id,qty:q,side})}function render(){if(!state)return;const me=state.leaderboard.find(x=>x.id===socket.id);if(me){$('assets').textContent=won(me.assets);$('ret').textContent=(me.returnRate>=0?'+':'')+me.returnRate.toFixed(2)+'%';$('cash').textContent=won(me.assets)}$('status').innerHTML=state.status==='running'?`🟢 진행 중 · 다음 가격 변동 ${fmt(state.seconds)}`:state.status==='finished'?'🔴 종료':'🟡 대기 중';$('stockList').innerHTML=Object.entries(state.prices).map(([id,p])=>`<div class="row"><div><b>${state.names[id]}</b><div class="muted">${id}</div></div><b>${won(p)}</b><div class="actions"><input id="q_${id}" type="number" min="1" value="1"><button class="buy" onclick="trade('${id}','buy')">매수</button><button class="sell" onclick="trade('${id}','sell')">매도</button></div></div>`).join('');$('rank').innerHTML=state.leaderboard.length?state.leaderboard.map((x,i)=>`<div class="row"><span><b>${i+1}위</b> ${x.name}</span><span>${won(x.assets)} · <b class="${x.returnRate>=0?'up':'down'}">${x.returnRate>=0?'+':''}${x.returnRate.toFixed(2)}%</b></span></div>`).join(''):'<span class="muted">참가자를 기다리는 중...</span>'}function adminStart(){socket.emit('adminStart')}function adminStop(){socket.emit('adminStop')}function adminReset(){if(confirm('전체 참가자를 초기화할까요?'))socket.emit('adminReset')}</script></body></html>
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>꿈틀꿈틀 모의주식</title>
+
+<style>
+
+*{
+box-sizing:border-box;
+}
+
+body{
+margin:0;
+background:#f5f6f8;
+color:#17181a;
+font-family:-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;
+}
+
+.wrap{
+max-width:900px;
+margin:auto;
+padding:14px;
+}
+
+.card{
+background:white;
+border-radius:18px;
+padding:18px;
+margin:12px 0;
+box-shadow:0 2px 12px #0001;
+}
+
+input,
+button{
+padding:10px;
+border-radius:10px;
+border:1px solid #ddd;
+font-size:15px;
+}
+
+button{
+border:0;
+font-weight:700;
+cursor:pointer;
+}
+
+.primary{
+background:#111;
+color:white;
+}
+
+.admin{
+background:#eee1ff;
+}
+
+.buy{
+background:#e8f0ff;
+}
+
+.sell{
+background:#ffe8e8;
+}
+
+.danger{
+background:#ffdede;
+}
+
+.row{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:8px;
+padding:12px 0;
+border-bottom:1px solid #eee;
+}
+
+.actions{
+display:flex;
+gap:5px;
+}
+
+.actions input{
+width:60px;
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:8px;
+}
+
+.stat{
+background:#f7f7f8;
+padding:12px;
+border-radius:12px;
+}
+
+.big{
+font-size:20px;
+font-weight:800;
+margin-top:4px;
+}
+
+.muted{
+color:#777;
+font-size:13px;
+}
+
+.notice{
+padding:10px;
+background:#f7f7f8;
+border-radius:10px;
+}
+
+.hidden{
+display:none;
+}
+
+.green{
+color:#159447;
+}
+
+.red{
+color:#d33;
+}
+
+@media(max-width:650px){
+
+.grid{
+grid-template-columns:1fr;
+}
+
+.row{
+flex-wrap:wrap;
+}
+
+.actions{
+width:100%;
+}
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+<!-- 제목 -->
+
+<div class="card">
+
+<h1>📈 꿈틀꿈틀 모의주식</h1>
+
+<div class="muted">
+1인당 가상자금 100만원 · 7분마다 주가 변동
+</div>
+
+<!-- 참가 -->
+
+<div id="login" style="margin-top:12px">
+
+<input
+id="name"
+maxlength="20"
+placeholder="닉네임"
+>
+
+<button
+class="primary"
+onclick="join()"
+>
+참가하기
+</button>
+
+</div>
+
+
+<!-- 참가 후 정보 -->
+
+<div id="me" class="hidden">
+
+<div
+id="status"
+class="notice"
+>
+게임 대기 중
+</div>
+
+<div
+class="grid"
+style="margin-top:10px"
+>
+
+<div class="stat">
+
+총자산
+
+<div
+class="big"
+id="assets"
+>
+₩0
+</div>
+
+</div>
+
+
+<div class="stat">
+
+현금
+
+<div
+class="big"
+id="cash"
+>
+₩0
+</div>
+
+</div>
+
+
+<div class="stat">
+
+수익률
+
+<div
+class="big"
+id="ret"
+>
+0%
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- 주식 -->
+
+<div
+class="card"
+id="stocks"
+style="display:none"
+>
+
+<h2>📊 종목</h2>
+
+<div id="stockList"></div>
+
+</div>
+
+
+<!-- 보유주식 -->
+
+<div
+class="card"
+id="hold"
+style="display:none"
+>
+
+<h2>📦 내 보유주식</h2>
+
+<div id="holdList">
+보유 주식 없음
+</div>
+
+</div>
+
+
+<!-- 순위 -->
+
+<div class="card">
+
+<h2>🏆 실시간 순위</h2>
+
+<div id="rank">
+참가자가 없습니다.
+</div>
+
+</div>
+
+
+<!-- 관리자 -->
+
+<div class="card">
+
+<h2>🔐 관리자</h2>
+
+
+<div id="adminLogin">
+
+<input
+id="pw"
+type="password"
+placeholder="관리자 비밀번호"
+>
+
+<button
+class="admin"
+onclick="adminLogin()"
+>
+관리자 로그인
+</button>
+
+</div>
+
+
+<div
+id="adminPanel"
+class="hidden"
+>
+
+<div class="notice">
+
+👑 관리자 모드
+
+· 참가자
+<b id="count">0</b>명
+
+</div>
+
+
+<p>
+
+<button
+class="primary"
+onclick="startGame()"
+>
+▶ 게임 시작
+</button>
+
+
+<button
+onclick="stopGame()"
+>
+⏹ 게임 종료
+</button>
+
+
+<button
+class="danger"
+onclick="resetGame()"
+>
+↻ 전체 초기화
+</button>
+
+
+<button
+class="admin"
+onclick="downloadResults()"
+>
+📥 최종 결과표 다운로드
+</button>
+
+</p>
+
+</div>
+
+</div>
+
+
+<div
+id="msg"
+class="muted"
+></div>
+
+</div>
+
+
+<script src="/socket.io/socket.io.js"></script>
+
+
+<script>
+
+const socket = io();
+
+let joined = false;
+
+
+const $ = id =>
+document.getElementById(id);
+
+
+const won = number =>
+"₩" +
+Math.round(number)
+.toLocaleString("ko-KR");
+
+
+function join(){
+
+const name =
+$("name")
+.value
+.trim();
+
+if(!name){
+
+return;
+
+}
+
+socket.emit(
+"join",
+name
+);
+
+}
+
+
+function adminLogin(){
+
+const password =
+$("pw")
+.value;
+
+socket.emit(
+"adminLogin",
+password
+);
+
+}
+
+
+function startGame(){
+
+socket.emit(
+"adminStart"
+);
+
+}
+
+
+function stopGame(){
+
+socket.emit(
+"adminStop"
+);
+
+}
+
+
+function resetGame(){
+
+if(
+confirm(
+"모든 참가자와 게임을 초기화할까요?"
+)
+){
+
+socket.emit(
+"adminReset"
+);
+
+}
+
+}
+
+
+function downloadResults(){
+
+location =
+"/api/results.csv?socketId=" +
+encodeURIComponent(socket.id);
+
+}
+
+
+function trade(
+id,
+side
+){
+
+const quantity =
+Number(
+$("q_" + id).value
+) || 0;
+
+
+socket.emit(
+"trade",
+{
+id:id,
+side:side,
+qty:quantity
+}
+);
+
+}
+
+
+function timer(seconds){
+
+const minutes =
+Math.floor(seconds / 60);
+
+const sec =
+seconds % 60;
+
+return (
+String(minutes).padStart(2,"0")
++
+":"
++
+String(sec).padStart(2,"0")
+);
+
+}
+
+
+/* 참가 완료 */
+
+socket.on(
+"joined",
+()=>{
+
+joined = true;
+
+$("login")
+.classList
+.add("hidden");
+
+$("me")
+.classList
+.remove("hidden");
+
+}
+);
+
+
+/* 관리자 로그인 */
+
+socket.on(
+"adminAuth",
+()=>{
+
+$("adminLogin")
+.classList
+.add("hidden");
+
+$("adminPanel")
+.classList
+.remove("hidden");
+
+}
+);
+
+
+/* 오류 메시지 */
+
+socket.on(
+"errorMsg",
+message=>{
+
+$("msg")
+.textContent =
+message;
+
+setTimeout(
+()=>{
+$("msg").textContent="";
+},
+3000
+);
+
+}
+);
+
+
+/* 서버 상태 */
+
+socket.on(
+"state",
+game=>{
+
+$("count")
+.textContent =
+game.playerCount;
+
+
+/* 게임 상태 */
+
+if(
+game.status === "running"
+){
+
+$("status")
+.innerHTML =
+"🟢 게임 진행 중 · " +
+"다음 주가 변동까지 " +
+"<b>" +
+timer(game.seconds) +
+"</b>";
+
+}
+
+else if(
+game.status === "finished"
+){
+
+$("status")
+.innerHTML =
+"🔴 게임 종료 · 최종 결과를 확인하세요.";
+
+}
+
+else{
+
+$("status")
+.innerHTML =
+"🟡 게임 대기 중 · 관리자가 게임을 시작하면 거래할 수 있습니다.";
+
+}
+
+
+/* 내 정보 */
+
+const me =
+game.leaderboard
+.find(
+player =>
+player.id === socket.id
+);
+
+
+if(me){
+
+$("assets")
+.textContent =
+won(me.assets);
+
+
+$("cash")
+.textContent =
+won(me.cash);
+
+
+$("ret")
+.textContent =
+(
+me.returnRate >= 0
+? "+"
+: ""
+)
++
+me.returnRate
+.toFixed(2)
++
+"%";
+
+
+$("ret").className =
+"big " +
+(
+me.returnRate >= 0
+? "green"
+: "red"
+);
+
+
+/* 보유주식 */
+
+const holdings =
+Object.entries(
+me.holdings
+)
+.filter(
+([id,quantity]) =>
+quantity > 0
+);
+
+
+if(
+holdings.length === 0
+){
+
+$("holdList")
+.textContent =
+"보유 주식 없음";
+
+}
+
+else{
+
+$("holdList")
+.innerHTML =
+holdings
+.map(
+([id,quantity])=>`
+
+<div class="row">
+
+<b>
+${game.companyNames[id]}
+</b>
+
+<span>
+${quantity}주 ·
+${won(
+quantity *
+game.prices[id]
+)}
+</span>
+
+</div>
+
+`
+)
+.join("");
+
+}
+
+}
+
+
+/* 주식 화면 */
+
+if(joined){
+
+$("stocks")
+.style
+.display =
+"block";
+
+$("hold")
+.style
+.display =
+"block";
+
+}
+
+
+/* 종목 */
+
+$("stockList")
+.innerHTML =
+Object.entries(
+game.prices
+)
+.map(
+([id,price])=>`
+
+<div class="row">
+
+<div>
+
+<b>
+${game.companyNames[id]}
+</b>
+
+<div class="muted">
+${id}
+</div>
+
+</div>
+
+
+<b>
+${won(price)}
+</b>
+
+
+<div class="actions">
+
+<input
+id="q_${id}"
+type="number"
+min="1"
+value="1"
+>
+
+
+<button
+class="buy"
+onclick="trade('${id}','buy')"
+>
+매수
+</button>
+
+
+<button
+class="sell"
+onclick="trade('${id}','sell')"
+>
+매도
+</button>
+
+</div>
+
+</div>
+
+`
+)
+.join("");
+
+
+/* 순위 */
+
+if(
+game.leaderboard.length === 0
+){
+
+$("rank")
+.textContent =
+"참가자가 없습니다.";
+
+}
+
+else{
+
+$("rank")
+.innerHTML =
+game.leaderboard
+.map(
+player=>`
+
+<div class="row">
+
+<b>
+${player.rank}위
+${player.name}
+</b>
+
+<span>
+
+${won(player.assets)}
+
+·
+
+<span
+class="${
+player.returnRate >= 0
+? "green"
+: "red"
+}"
+>
+
+${
+player.returnRate >= 0
+? "+"
+: ""
+}
+
+${player.returnRate.toFixed(2)}
+%
+
+</span>
+
+</span>
+
+</div>
+
+`
+)
+.join("");
+
+}
+
+});
+
+</script>
+
+</body>
+</html>
