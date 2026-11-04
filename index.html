@@ -37,12 +37,6 @@ button{border:0;font-weight:700;cursor:pointer}
 .news-title{font-weight:750;margin-bottom:5px;line-height:1.5}
 .news-description{color:#666;font-size:13px;line-height:1.6}
 .news-time{color:#999;font-size:11px}
-.company-item{padding:13px 0;border-bottom:1px solid #eee}
-.company-item:last-child{border-bottom:0}
-.company-name{font-weight:800;margin-bottom:5px}
-.company-code{font-size:11px;color:#888;margin-left:5px}
-.company-description{font-size:13px;color:#666;line-height:1.6}
-.company-tag{display:inline-block;background:#f0f3f8;color:#53647c;padding:4px 8px;border-radius:20px;font-size:11px;margin-bottom:6px}
 @media(max-width:600px){
   .stats{grid-template-columns:1fr}
   .row{flex-wrap:wrap}
@@ -75,28 +69,20 @@ button{border:0;font-weight:700;cursor:pointer}
     </div>
   </div>
 
-  <div class="card" id="companyCard">
-    <h2>🏢 기업 정보</h2>
-    <div class="muted" style="margin-bottom:10px">
-      각 기업의 주요 사업과 특징을 확인해 보세요.
+  <div class="card">
+    <h2>💼 내 보유 주식</h2>
+    <div id="holdingsList">
+      <div class="muted">참가 후 보유 현황이 표시됩니다.</div>
     </div>
-    <div id="companyList"></div>
   </div>
 
   <div class="card" id="newsCard">
     <h2>📰 실시간 경제·기업 뉴스</h2>
     <div class="muted" style="margin-bottom:10px">
-      첫 주가 변동 이후 새로운 뉴스가 생성됩니다.
+      매 라운드마다 새로운 뉴스가 무작위로 생성됩니다.
     </div>
     <div id="newsList">
-      <div class="muted">게임 시작 후 첫 가격 변동을 기다리는 중입니다.</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>💼 내 보유 주식</h2>
-    <div id="holdingsList">
-      <div class="muted">참가 후 보유 현황이 표시됩니다.</div>
+      <div class="muted">게임 시작 후 뉴스가 생성됩니다.</div>
     </div>
   </div>
 
@@ -140,72 +126,9 @@ let state=null;
 let stockRowsCreated=false;
 let isAdmin=false;
 
-const companyProfiles={
-  NOVA:{
-    name:"노바테크",
-    field:"IT·전자",
-    description:"차세대 스마트폰과 AI 모바일 기기를 개발하는 혁신 기업."
-  },
-  GREEN:{
-    name:"그린바이오",
-    field:"바이오·친환경",
-    description:"친환경 바이오 소재와 차세대 식품 기술을 연구하는 기업."
-  },
-  PIXEL:{
-    name:"픽셀랩",
-    field:"디지털·콘텐츠",
-    description:"영상 처리 기술과 디지털 콘텐츠 제작 솔루션을 개발하는 기업."
-  },
-  WAVE:{
-    name:"웨이브모빌",
-    field:"모빌리티",
-    description:"전기차와 차세대 이동 수단을 위한 핵심 기술을 개발하는 기업."
-  },
-  MINT:{
-    name:"민트푸드",
-    field:"식품·유통",
-    description:"건강식품과 대체 식품을 개발하고 새로운 식품 시장을 개척하는 기업."
-  },
-  ROBOT:{
-    name:"로보웍스",
-    field:"로봇·AI",
-    description:"산업용 로봇과 AI 자동화 시스템을 개발하는 기술 기업."
-  },
-  SPACE:{
-    name:"스페이스원",
-    field:"우주·항공",
-    description:"소형 인공위성과 우주 운송 관련 기술을 연구하는 항공우주 기업."
-  },
-  MEDI:{
-    name:"메디큐어",
-    field:"의료·바이오",
-    description:"차세대 진단 장비와 바이오 기반 의료 기술을 개발하는 기업."
-  },
-  ECO:{
-    name:"에코파워",
-    field:"에너지·환경",
-    description:"태양광과 에너지 저장 기술을 활용해 친환경 에너지 사업을 추진하는 기업."
-  },
-  FIN:{
-    name:"핀테크원",
-    field:"금융·IT",
-    description:"간편 결제와 디지털 금융 서비스를 개발하는 핀테크 기업."
-  },
-  MEDIA:{
-    name:"미디어픽",
-    field:"미디어·엔터테인먼트",
-    description:"온라인 영상 플랫폼과 디지털 광고 콘텐츠 사업을 운영하는 기업."
-  },
-  HOME:{
-    name:"홈넥스트",
-    field:"생활·스마트홈",
-    description:"AI 가전과 스마트홈 관리 시스템을 개발하는 생활 기술 기업."
-  }
-};
-
+const quantityValues=new Map();
 const $=id=>document.getElementById(id);
 const won=n=>"₩"+Math.round(n).toLocaleString("ko-KR");
-const quantityValues=new Map();
 
 function escapeHTML(value){
   return String(value??"").replace(/[&<>"']/g,char=>({
@@ -215,21 +138,6 @@ function escapeHTML(value){
     '"':"&quot;",
     "'":"&#39;"
   })[char]);
-}
-
-function renderCompanies(){
-  $("companyList").innerHTML=Object.entries(companyProfiles).map(([id,company])=>`
-    <div class="company-item">
-      <div class="company-name">
-        ${escapeHTML(company.name)}
-        <span class="company-code">${escapeHTML(id)}</span>
-      </div>
-      <span class="company-tag">${escapeHTML(company.field)}</span>
-      <div class="company-description">
-        ${escapeHTML(company.description)}
-      </div>
-    </div>
-  `).join("");
 }
 
 function join(){
@@ -424,7 +332,7 @@ function renderNews(){
 
   if(items.length===0){
     newsList.innerHTML=
-      '<div class="muted">첫 주가 변동 후 뉴스가 표시됩니다.</div>';
+      '<div class="muted">새로운 뉴스가 생성되기를 기다리는 중입니다.</div>';
     return;
   }
 
@@ -556,8 +464,6 @@ function downloadCSV(){
   const url="/api/results.csv?socketId="+encodeURIComponent(socket.id);
   window.location.href=url;
 }
-
-renderCompanies();
 </script>
 </body>
 </html>
