@@ -12,11 +12,11 @@ const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "change-me";
 
 const START_CASH = 300000;
-const FIRST_ROUND_SECONDS = 60;
-const ROUND_SECONDS = 60;
+const FIRST_ROUND_SECONDS = 90;
+const ROUND_SECONDS = 90;
 const MAX_QUANTITY = 10000;
 
-const BUILD_ID = "news-reset-1min";
+const BUILD_ID = "news-reset-90sec";
 
 const PUBLIC_DIR = path.join(__dirname, "public");
 const INDEX_FILE = path.join(__dirname, "index.html");
@@ -213,7 +213,6 @@ function generateNews() {
   console.log("[NEWS GENERATED]", title);
 }
 
-// 이전 뉴스를 지우고 새 뉴스 1~4개 생성
 function replaceNewsBatch() {
   news = [];
 
@@ -314,8 +313,6 @@ setInterval(() => {
 
   if (seconds <= 0) {
     changePrices();
-
-    // 가격 변동과 동시에 기존 뉴스 삭제 후 새 뉴스 생성
     replaceNewsBatch();
 
     seconds = ROUND_SECONDS;
