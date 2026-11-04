@@ -11,7 +11,7 @@ const io = new Server(server);
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "change-me";
 
-const START_CASH = 500000;
+const START_CASH = 300000;
 const FIRST_ROUND_SECONDS = 90;
 const ROUND_SECONDS = 90;
 const MAX_QUANTITY = 10000;
