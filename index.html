@@ -1,1 +1,645 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>꿈틀꿈틀 모의주식</title><style>*{box-sizing:border-box}body{margin:0;background:#f4f5f7;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;color:#17181a}.wrap{max-width:900px;margin:auto;padding:16px}.card{background:#fff;border-radius:18px;padding:18px;margin:12px 0;box-shadow:0 2px 12px #0000000d}h1{margin:0 0 5px}h2{font-size:19px}.muted{color:#777;font-size:13px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{background:#f7f7f8;border-radius:13px;padding:13px}.big{font-size:21px;font-weight:800;margin-top:4px}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 0;border-bottom:1px solid #eee}.row:last-child{border:0}.actions{display:flex;gap:5px;align-items:center}.actions input{width:55px}input,button{padding:10px;border:1px solid #ddd;border-radius:10px;font-size:15px}button{border:0;font-weight:700}.primary{background:#111;color:white}.buy{background:#eaf1ff;color:#2363d1}.sell{background:#ffeded;color:#d33}.up{color:#d33}.down{color:#2866c7}@media(max-width:600px){.stats{grid-template-columns:1fr}.row{flex-wrap:wrap}.actions{width:100%}}#game{display:none}</style></head><body><div class="wrap"><div class="card"><h1>📈 꿈틀꿈틀 실시간 모의주식</h1><div class="muted">모든 참가자가 같은 주가를 공유합니다.</div><div id="login" style="margin-top:14px"><input id="name" maxlength="20" placeholder="닉네임"><button class="primary" onclick="join()">참가하기</button></div><div id="game"><p id="status"></p><div class="stats"><div class="stat">총자산<div id="assets" class="big">₩1,000,000</div></div><div class="stat">수익률<div id="ret" class="big">0.00%</div></div><div class="stat">현금<div id="cash" class="big">₩1,000,000</div></div></div></div></div><div class="card" id="stocks"><h2>종목</h2><div id="stockList"></div></div><div class="card"><h2>🏆 실시간 순위</h2><div id="rank"></div></div><div class="card"><h2>관리자</h2><button class="primary" onclick="adminStart()">게임 시작</button> <button onclick="adminStop()">게임 종료</button> <button onclick="adminReset()">전체 초기화</button><div class="muted" style="margin-top:8px">진행자 기기에서만 관리 버튼을 사용하세요.</div></div><div id="msg" class="muted"></div></div><script src="/socket.io/socket.io.js"></script><script>const socket=io();let state;const $=x=>document.getElementById(x);const won=n=>'₩'+Math.round(n).toLocaleString('ko-KR');function join(){const n=$('name').value.trim();if(n)socket.emit('join',n)}function fmt(x){return String(Math.floor(x/60)).padStart(2,'0')+':'+String(x%60).padStart(2,'0')}socket.on('joined',()=>{$('login').style.display='none';$('game').style.display='block'});socket.on('errorMsg',m=>{$('msg').textContent=m;setTimeout(()=>$('msg').textContent='',2500)});socket.on('state',s=>{state=s;render()});function trade(id,side){const q=+document.querySelector('#q_'+id).value||0;socket.emit('trade',{id,qty:q,side})}function render(){if(!state)return;const me=state.leaderboard.find(x=>x.id===socket.id);if(me){$('assets').textContent=won(me.assets);$('ret').textContent=(me.returnRate>=0?'+':'')+me.returnRate.toFixed(2)+'%';$('cash').textContent=won(me.assets)}$('status').innerHTML=state.status==='running'?`🟢 진행 중 · 다음 가격 변동 ${fmt(state.seconds)}`:state.status==='finished'?'🔴 종료':'🟡 대기 중';$('stockList').innerHTML=Object.entries(state.prices).map(([id,p])=>`<div class="row"><div><b>${state.names[id]}</b><div class="muted">${id}</div></div><b>${won(p)}</b><div class="actions"><input id="q_${id}" type="number" min="1" value="1"><button class="buy" onclick="trade('${id}','buy')">매수</button><button class="sell" onclick="trade('${id}','sell')">매도</button></div></div>`).join('');$('rank').innerHTML=state.leaderboard.length?state.leaderboard.map((x,i)=>`<div class="row"><span><b>${i+1}위</b> ${x.name}</span><span>${won(x.assets)} · <b class="${x.returnRate>=0?'up':'down'}">${x.returnRate>=0?'+':''}${x.returnRate.toFixed(2)}%</b></span></div>`).join(''):'<span class="muted">참가자를 기다리는 중...</span>'}function adminStart(){socket.emit('adminStart')}function adminStop(){socket.emit('adminStop')}function adminReset(){if(confirm('전체 참가자를 초기화할까요?'))socket.emit('adminReset')}</script></body></html>
+
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>꿈틀꿈틀 모의주식</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f4f5f7;
+  font-family: -apple-system, BlinkMacSystemFont, "Noto Sans KR", sans-serif;
+  color: #17181a;
+}
+
+.wrap {
+  max-width: 900px;
+  margin: auto;
+  padding: 16px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 18px;
+  margin: 12px 0;
+  box-shadow: 0 2px 12px #0000000d;
+}
+
+h1 {
+  margin: 0 0 5px;
+}
+
+h2 {
+  font-size: 19px;
+}
+
+.muted {
+  color: #777;
+  font-size: 13px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.stat {
+  background: #f7f7f8;
+  border-radius: 13px;
+  padding: 13px;
+}
+
+.big {
+  font-size: 21px;
+  font-weight: 800;
+  margin-top: 4px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 13px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.row:last-child {
+  border: 0;
+}
+
+.actions {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.actions input {
+  width: 85px;
+  min-width: 85px;
+}
+
+input, button {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-size: 15px;
+}
+
+input {
+  min-width: 0;
+  background: white;
+  color: #17181a;
+}
+
+button {
+  border: 0;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary {
+  background: #111;
+  color: white;
+}
+
+.buy {
+  background: #eaf1ff;
+  color: #2363d1;
+}
+
+.sell {
+  background: #ffeded;
+  color: #d33;
+}
+
+.up {
+  color: #d33;
+}
+
+.down {
+  color: #2866c7;
+}
+
+#game {
+  display: none;
+}
+
+#adminControls {
+  display: none;
+}
+
+.stock-price {
+  white-space: nowrap;
+}
+
+/* 뉴스 */
+
+.news-item {
+  padding: 13px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.news-item:last-child {
+  border-bottom: 0;
+}
+
+.news-top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.news-category {
+  background: #f0f0f0;
+  color: #555;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-weight: 700;
+}
+
+.news-positive {
+  color: #d33;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.news-negative {
+  color: #2866c7;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.news-neutral {
+  color: #777;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.news-title {
+  font-weight: 750;
+  margin-bottom: 5px;
+  line-height: 1.5;
+}
+
+.news-description {
+  color: #666;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.news-time {
+  color: #999;
+  font-size: 11px;
+  margin-top: 6px;
+}
+
+@media(max-width:600px) {
+  .stats {
+    grid-template-columns: 1fr;
+  }
+
+  .row {
+    flex-wrap: wrap;
+  }
+
+  .stock-info {
+    width: 45%;
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .actions input {
+    flex: 1;
+  }
+
+  .actions button {
+    flex: 1;
+  }
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <div class="card">
+    <h1>📈 꿈틀꿈틀 실시간 모의주식</h1>
+    <div class="muted">모든 참가자가 같은 주가를 공유합니다.</div>
+
+    <div id="login" style="margin-top:14px">
+      <input id="name" maxlength="20" placeholder="닉네임">
+      <button class="primary" onclick="join()">참가하기</button>
+    </div>
+
+    <div id="game">
+      <p id="status"></p>
+
+      <div class="stats">
+        <div class="stat">
+          총자산
+          <div id="assets" class="big">₩300,000</div>
+        </div>
+
+        <div class="stat">
+          수익률
+          <div id="ret" class="big">0.00%</div>
+        </div>
+
+        <div class="stat">
+          보유 현금
+          <div id="cash" class="big">₩300,000</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 자동 생성 뉴스 -->
+  <div class="card">
+    <h2>📰 실시간 경제·기업 뉴스</h2>
+    <div class="muted" style="margin-bottom:10px">
+      경제 상황과 기업 소식에 따라 주가가 변동합니다.
+    </div>
+    <div id="newsList">
+      <div class="muted">게임 시작 후 새로운 뉴스가 생성됩니다.</div>
+    </div>
+  </div>
+
+  <div class="card" id="stocks">
+    <h2>📊 종목</h2>
+    <div id="stockList"></div>
+  </div>
+
+  <div class="card">
+    <h2>🏆 실시간 순위</h2>
+    <div id="rank"></div>
+  </div>
+
+  <div class="card">
+    <h2>🔐 관리자</h2>
+
+    <div id="adminLogin">
+      <input id="adminPassword" type="password" placeholder="관리자 비밀번호">
+      <button class="primary" onclick="adminLogin()">로그인</button>
+    </div>
+
+    <div id="adminControls">
+      <button class="primary" onclick="adminStart()">게임 시작</button>
+      <button onclick="adminStop()">게임 종료</button>
+      <button onclick="adminReset()">전체 초기화</button>
+      <button onclick="downloadCSV()">결과 CSV 다운로드</button>
+    </div>
+
+    <div class="muted" style="margin-top:8px">
+      진행자 기기에서만 관리 기능을 사용하세요.
+    </div>
+  </div>
+
+  <div id="msg" class="muted"></div>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+const socket = io();
+
+let state = null;
+let stockRowsCreated = false;
+let isAdmin = false;
+
+const $ = id => document.getElementById(id);
+
+const won = n =>
+  "₩" + Math.round(n).toLocaleString("ko-KR");
+
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[char]);
+}
+
+function join() {
+  const name = $("name").value.trim();
+
+  if (!name) {
+    showMessage("닉네임을 입력해 주세요.");
+    return;
+  }
+
+  socket.emit("join", name);
+}
+
+$("name").addEventListener("keydown", event => {
+  if (event.key === "Enter") join();
+});
+
+$("adminPassword").addEventListener("keydown", event => {
+  if (event.key === "Enter") adminLogin();
+});
+
+function fmt(x) {
+  return (
+    String(Math.floor(x / 60)).padStart(2, "0") +
+    ":" +
+    String(x % 60).padStart(2, "0")
+  );
+}
+
+function showMessage(message) {
+  $("msg").textContent = message;
+}
+
+socket.on("joined", () => {
+  $("login").style.display = "none";
+  $("game").style.display = "block";
+  showMessage("게임 참가가 완료되었습니다.");
+});
+
+socket.on("adminAuth", () => {
+  isAdmin = true;
+  $("adminLogin").style.display = "none";
+  $("adminControls").style.display = "block";
+  showMessage("관리자 로그인에 성공했습니다.");
+});
+
+socket.on("errorMsg", message => {
+  showMessage(message);
+});
+
+socket.on("tradeSuccess", message => {
+  showMessage(message);
+});
+
+socket.on("state", newState => {
+  state = newState;
+  render();
+});
+
+function trade(id, side) {
+  const input = $("q_" + id);
+
+  if (!input) return;
+
+  const quantity = Number(input.value);
+
+  if (
+    !Number.isSafeInteger(quantity) ||
+    quantity <= 0
+  ) {
+    showMessage("매수·매도 수량을 1주 이상 입력해 주세요.");
+    input.focus();
+    return;
+  }
+
+  socket.emit("trade", {
+    id,
+    side,
+    qty: quantity
+  });
+}
+
+function createStockRows() {
+  const stockList = $("stockList");
+
+  stockList.innerHTML = "";
+
+  for (const id of Object.keys(state.prices)) {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.id = "stock_" + id;
+
+    row.innerHTML = `
+      <div class="stock-info">
+        <b class="stock-name"></b>
+        <div class="muted">${escapeHTML(id)}</div>
+      </div>
+
+      <b class="stock-price"></b>
+
+      <div class="actions">
+        <input
+          id="q_${id}"
+          type="number"
+          min="1"
+          max="10000"
+          step="1"
+          value="1"
+          inputmode="numeric"
+          aria-label="${escapeHTML(id)} 거래 수량"
+        >
+
+        <button class="buy" type="button">매수</button>
+        <button class="sell" type="button">매도</button>
+      </div>
+    `;
+
+    row.querySelector(".stock-name").textContent =
+      state.companyNames[id] || id;
+
+    row.querySelector(".buy").addEventListener("click", () => {
+      trade(id, "buy");
+    });
+
+    row.querySelector(".sell").addEventListener("click", () => {
+      trade(id, "sell");
+    });
+
+    stockList.appendChild(row);
+  }
+
+  stockRowsCreated = true;
+}
+
+function updateStockRows() {
+  for (const id of Object.keys(state.prices)) {
+    const row = $("stock_" + id);
+
+    if (!row) continue;
+
+    const price = state.prices[id];
+    const previous = state.previousPrices[id];
+
+    const priceElement = row.querySelector(".stock-price");
+
+    priceElement.textContent = won(price);
+
+    priceElement.className =
+      "stock-price " +
+      (
+        price > previous
+          ? "up"
+          : price < previous
+            ? "down"
+            : ""
+      );
+  }
+}
+
+function renderNews() {
+  const items = state.news || [];
+
+  if (items.length === 0) {
+    $("newsList").innerHTML =
+      '<div class="muted">게임 시작 후 새로운 뉴스가 생성됩니다.</div>';
+    return;
+  }
+
+  $("newsList").innerHTML = items.map(item => {
+    const sentimentText =
+      item.sentiment > 0
+        ? "긍정"
+        : item.sentiment < 0
+          ? "부정"
+          : "중립";
+
+    const sentimentClass =
+      item.sentiment > 0
+        ? "news-positive"
+        : item.sentiment < 0
+          ? "news-negative"
+          : "news-neutral";
+
+    return `
+      <div class="news-item">
+        <div class="news-top">
+          <span class="news-category">
+            ${escapeHTML(item.category)}
+          </span>
+
+          <span class="${sentimentClass}">
+            ${sentimentText}
+          </span>
+
+          <span class="muted">
+            ${escapeHTML(item.time)}
+          </span>
+        </div>
+
+        <div class="news-title">
+          ${escapeHTML(item.title)}
+        </div>
+
+        <div class="news-description">
+          ${escapeHTML(item.description)}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function render() {
+  if (!state) return;
+
+  const me = state.leaderboard.find(
+    player => player.id === socket.id
+  );
+
+  if (me) {
+    $("assets").textContent = won(me.assets);
+    $("cash").textContent = won(me.cash);
+
+    $("ret").textContent =
+      (me.returnRate >= 0 ? "+" : "") +
+      me.returnRate.toFixed(2) +
+      "%";
+
+    $("ret").className =
+      "big " + (me.returnRate >= 0 ? "up" : "down");
+  }
+
+  $("status").textContent =
+    state.status === "running"
+      ? `🟢 진행 중 · 다음 가격 변동 ${fmt(state.seconds)}`
+      : state.status === "finished"
+        ? "🔴 게임 종료"
+        : "🟡 대기 중";
+
+  if (!stockRowsCreated) {
+    createStockRows();
+  }
+
+  updateStockRows();
+  renderNews();
+
+  $("rank").innerHTML =
+    state.leaderboard.length
+      ? state.leaderboard.map((player, index) => `
+          <div class="row">
+            <span>
+              <b>${index + 1}위</b>
+              ${escapeHTML(player.name)}
+            </span>
+
+            <span>
+              ${won(player.assets)}
+              ·
+              <b class="${player.returnRate >= 0 ? "up" : "down"}">
+                ${player.returnRate >= 0 ? "+" : ""}
+                ${player.returnRate.toFixed(2)}%
+              </b>
+            </span>
+          </div>
+        `).join("")
+      : '<span class="muted">참가자를 기다리는 중...</span>';
+}
+
+function adminLogin() {
+  const password = $("adminPassword").value;
+
+  if (!password) {
+    showMessage("관리자 비밀번호를 입력해 주세요.");
+    return;
+  }
+
+  socket.emit("adminLogin", password);
+}
+
+function adminStart() {
+  socket.emit("adminStart");
+}
+
+function adminStop() {
+  socket.emit("adminStop");
+}
+
+function adminReset() {
+  if (confirm("전체 참가자를 초기화할까요?")) {
+    socket.emit("adminReset");
+  }
+}
+
+function downloadCSV() {
+  if (!isAdmin) {
+    showMessage("관리자 로그인이 필요합니다.");
+    return;
+  }
+
+  const url =
+    "/api/results.csv?socketId=" +
+    encodeURIComponent(socket.id);
+
+  window.location.href = url;
+}
+</script>
+
+</body>
+</html>
+
