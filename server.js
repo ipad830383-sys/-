@@ -16,11 +16,24 @@ const FIRST_ROUND_SECONDS = 120;
 const ROUND_SECONDS = 90;
 const MAX_QUANTITY = 10000;
 
+const BUILD_ID = "news-fix-2026-11-04";
+
+const PUBLIC_DIR = path.join(__dirname, "public");
+const INDEX_FILE = path.join(PUBLIC_DIR, "index.html");
+
 const initialPrices = {
-  NOVA: 42000, GREEN: 31500, PIXEL: 18700,
-  WAVE: 52900, MINT: 24100, ROBOT: 73400,
-  SPACE: 45200, MEDI: 36800, ECO: 28500,
-  FIN: 61000, MEDIA: 22300, HOME: 39600
+  NOVA: 42000,
+  GREEN: 31500,
+  PIXEL: 18700,
+  WAVE: 52900,
+  MINT: 24100,
+  ROBOT: 73400,
+  SPACE: 45200,
+  MEDI: 36800,
+  ECO: 28500,
+  FIN: 61000,
+  MEDIA: 22300,
+  HOME: 39600
 };
 
 const companyNames = {
@@ -64,32 +77,79 @@ const companyNews = [
 
 let prices = { ...initialPrices };
 let previousPrices = { ...initialPrices };
+
 let seconds = FIRST_ROUND_SECONDS;
 let status = "waiting";
 
 let news = [];
 let newsSequence = 0;
 
-let latestNewsImpact = { market: 0, stocks: {} };
+let latestNewsImpact = {
+  market: 0,
+  stocks: {}
+};
 
 const players = new Map();
 const admins = new Set();
 
-app.use(express.static(path.join(__dirname, "public"), {
-  etag: false,
-  maxAge: 0
-}));
-
-app.get("/", (req, res) => {
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+// 모든 페이지 응답의 캐시 방지
+app.use((req, res, next) => {
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate"
+  );
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
 });
+
+// 빌드 확인용
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    build: BUILD_ID,
+    indexFile: INDEX_FILE,
+    newsCount: news.length,
+    gameStatus: status
+  });
+});
+
+// 반드시 정적 파일 설정보다 먼저 HTML 제공
+app.get("/", (req, res) => {
+  res.sendFile(INDEX_FILE, err => {
+    if (err) {
+      console.error("[HTML ERROR]", err);
+      if (!res.headersSent) {
+        res.status(500).send("index.html 파일을 찾을 수 없습니다.");
+      }
+    }
+  });
+});
+
+app.get("/index.html", (req, res) => {
+  res.sendFile(INDEX_FILE, err => {
+    if (err) {
+      console.error("[HTML ERROR]", err);
+      if (!res.headersSent) {
+        res.status(500).send("index.html 파일을 찾을 수 없습니다.");
+      }
+    }
+  });
+});
+
+// 이미지, CSS 등 나머지 정적 파일 제공
+app.use(express.static(PUBLIC_DIR, {
+  etag: false,
+  maxAge: 0,
+  index: false
+}));
 
 function getPlayerView(player) {
   let stockValue = 0;
 
   for (const id of Object.keys(player.holdings)) {
-    stockValue += (player.holdings[id] || 0) * (prices[id] || 0);
+    stockValue +=
+      (player.holdings[id] || 0) * (prices[id] || 0);
   }
 
   const assets = player.cash + stockValue;
@@ -109,7 +169,10 @@ function getState() {
   const leaderboard = [...players.values()]
     .map(getPlayerView)
     .sort((a, b) => b.assets - a.assets)
-    .map((player, index) => ({ rank: index + 1, ...player }));
+    .map((player, index) => ({
+      rank: index + 1,
+      ...player
+    }));
 
   return {
     prices: { ...prices },
@@ -128,6 +191,8 @@ function broadcast() {
 }
 
 function sendNews() {
+  console.log("[NEWS SENT]", news.length);
+
   io.emit("newsUpdate", news.slice(0, 20));
   broadcast();
 }
@@ -136,6 +201,7 @@ function randomItem(array) {
   return array[Math.floor(Math.random() * array.length)];
 }
 
+// 뉴스 생성
 function generateNews() {
   const isEconomy = Math.random() < 0.35;
 
@@ -147,21 +213,27 @@ function generateNews() {
 
   if (isEconomy) {
     item = randomItem(economyNews);
+
     category = "경제";
     title = item[0];
     description = item[1];
+
     latestNewsImpact.market = item[2] * 0.015;
   } else {
     const id = randomItem(Object.keys(companyNames));
+
     item = randomItem(companyNews);
+
     category = "기업";
     target = id;
+
     title = `${companyNames[id]}, ${item[0]}`;
     description = item[1];
+
     latestNewsImpact.stocks[id] = item[2] * 0.045;
   }
 
-  news.unshift({
+  const newItem = {
     id: ++newsSequence,
     category,
     target,
@@ -169,13 +241,18 @@ function generateNews() {
     description,
     sentiment: item[2],
     time: new Date().toLocaleTimeString("ko-KR")
-  });
+  };
 
-  if (news.length > 20) news.pop();
+  news.unshift(newItem);
 
-  console.log("[NEWS GENERATED]", title);
+  if (news.length > 20) {
+    news.pop();
+  }
+
+  console.log("[NEWS GENERATED]", newItem);
 }
 
+// 주가 변동
 function changePrices() {
   previousPrices = { ...prices };
 
@@ -186,30 +263,49 @@ function changePrices() {
       latestNewsImpact.market +
       (latestNewsImpact.stocks[id] || 0);
 
-    const totalChange = Math.max(-0.22, Math.min(0.22, randomChange + impact));
+    const totalChange = Math.max(
+      -0.22,
+      Math.min(0.22, randomChange + impact)
+    );
 
     prices[id] = Math.max(
       1000,
-      Math.round(prices[id] * (1 + totalChange) / 100) * 100
+      Math.round(
+        prices[id] * (1 + totalChange) / 100
+      ) * 100
     );
   }
 
-  latestNewsImpact = { market: 0, stocks: {} };
+  latestNewsImpact = {
+    market: 0,
+    stocks: {}
+  };
 }
 
+// 게임 초기화
 function resetGame() {
   prices = { ...initialPrices };
   previousPrices = { ...initialPrices };
+
   seconds = FIRST_ROUND_SECONDS;
   status = "waiting";
+
   news = [];
   newsSequence = 0;
-  latestNewsImpact = { market: 0, stocks: {} };
+
+  latestNewsImpact = {
+    market: 0,
+    stocks: {}
+  };
+
   players.clear();
 }
 
+// CSV 생성
 function makeCSV() {
-  const rows = [["순위", "닉네임", "현금", "보유주식 평가액", "총자산", "수익률"]];
+  const rows = [
+    ["순위", "닉네임", "현금", "보유주식 평가액", "총자산", "수익률"]
+  ];
 
   getState().leaderboard.forEach(player => {
     rows.push([
@@ -223,20 +319,28 @@ function makeCSV() {
   });
 
   return "\uFEFF" + rows.map(row =>
-    row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(",")
+    row.map(value =>
+      `"${String(value).replaceAll('"', '""')}"`
+    ).join(",")
   ).join("\n");
 }
 
+// CSV 다운로드
 app.get("/api/results.csv", (req, res) => {
   if (!admins.has(req.query.socketId)) {
     return res.status(403).send("관리자 권한이 필요합니다.");
   }
 
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
-  res.setHeader("Content-Disposition", 'attachment; filename="kkumteul-final-results.csv"');
+  res.setHeader(
+    "Content-Disposition",
+    'attachment; filename="kkumteul-final-results.csv"'
+  );
+
   res.send(makeCSV());
 });
 
+// 게임 시간 관리
 setInterval(() => {
   if (status !== "running") return;
 
@@ -244,8 +348,11 @@ setInterval(() => {
 
   if (seconds <= 0) {
     changePrices();
+
     generateNews();
+
     seconds = ROUND_SECONDS;
+
     sendNews();
     return;
   }
@@ -253,16 +360,30 @@ setInterval(() => {
   broadcast();
 }, 1000);
 
+// Socket.IO
 io.on("connection", socket => {
+  console.log("[CONNECTED]", socket.id);
+
   socket.emit("state", getState());
   socket.emit("newsUpdate", news.slice(0, 20));
 
+  // 참가
   socket.on("join", rawName => {
-    const name = String(rawName || "").trim().slice(0, 20);
+    const name = String(rawName || "")
+      .trim()
+      .slice(0, 20);
 
-    if (!name) return socket.emit("errorMsg", "닉네임을 입력해 주세요.");
-    if (status === "finished") return socket.emit("errorMsg", "게임이 종료되었습니다.");
-    if (players.has(socket.id)) return socket.emit("errorMsg", "이미 참가 중입니다.");
+    if (!name) {
+      return socket.emit("errorMsg", "닉네임을 입력해 주세요.");
+    }
+
+    if (status === "finished") {
+      return socket.emit("errorMsg", "게임이 종료되었습니다.");
+    }
+
+    if (players.has(socket.id)) {
+      return socket.emit("errorMsg", "이미 참가 중입니다.");
+    }
 
     players.set(socket.id, {
       id: socket.id,
@@ -275,44 +396,88 @@ io.on("connection", socket => {
     broadcast();
   });
 
+  // 관리자 로그인
   socket.on("adminLogin", password => {
     if (String(password || "") !== ADMIN_PASSWORD) {
-      return socket.emit("errorMsg", "관리자 비밀번호가 올바르지 않습니다.");
+      return socket.emit(
+        "errorMsg",
+        "관리자 비밀번호가 올바르지 않습니다."
+      );
     }
 
     admins.add(socket.id);
+
     socket.emit("adminAuth");
   });
 
+  // 게임 시작
   socket.on("adminStart", () => {
-    if (!admins.has(socket.id)) return socket.emit("errorMsg", "관리자 권한이 필요합니다.");
-    if (status === "finished") return socket.emit("errorMsg", "게임 종료 후에는 초기화해야 합니다.");
+    if (!admins.has(socket.id)) {
+      return socket.emit("errorMsg", "관리자 권한이 필요합니다.");
+    }
+
+    if (status === "finished") {
+      return socket.emit(
+        "errorMsg",
+        "게임 종료 후에는 초기화해야 합니다."
+      );
+    }
 
     status = "running";
+
     seconds = FIRST_ROUND_SECONDS;
 
-    if (news.length === 0) generateNews();
+    // 첫 뉴스 즉시 생성
+    if (news.length === 0) {
+      generateNews();
+    }
 
+    // 모든 참가자에게 뉴스와 게임 상태 전송
     sendNews();
+
+    console.log("[GAME STARTED]");
   });
 
+  // 게임 종료
   socket.on("adminStop", () => {
-    if (!admins.has(socket.id)) return socket.emit("errorMsg", "관리자 권한이 필요합니다.");
+    if (!admins.has(socket.id)) {
+      return socket.emit("errorMsg", "관리자 권한이 필요합니다.");
+    }
+
     status = "finished";
+
     broadcast();
+
+    console.log("[GAME FINISHED]");
   });
 
+  // 전체 초기화
   socket.on("adminReset", () => {
-    if (!admins.has(socket.id)) return socket.emit("errorMsg", "관리자 권한이 필요합니다.");
+    if (!admins.has(socket.id)) {
+      return socket.emit("errorMsg", "관리자 권한이 필요합니다.");
+    }
+
     resetGame();
+
     sendNews();
+
+    console.log("[GAME RESET]");
   });
 
+  // 매수 및 매도
   socket.on("trade", data => {
     const player = players.get(socket.id);
 
-    if (!player) return socket.emit("errorMsg", "먼저 참가해 주세요.");
-    if (status !== "running") return socket.emit("errorMsg", "게임이 시작된 뒤 거래할 수 있습니다.");
+    if (!player) {
+      return socket.emit("errorMsg", "먼저 참가해 주세요.");
+    }
+
+    if (status !== "running") {
+      return socket.emit(
+        "errorMsg",
+        "게임이 시작된 뒤 거래할 수 있습니다."
+      );
+    }
 
     const id = String(data?.id || "");
     const side = data?.side;
@@ -326,24 +491,38 @@ io.on("connection", socket => {
       return socket.emit("errorMsg", "거래 종류를 확인해 주세요.");
     }
 
-    if (!Number.isSafeInteger(quantity) || quantity <= 0 || quantity > MAX_QUANTITY) {
+    if (
+      !Number.isSafeInteger(quantity) ||
+      quantity <= 0 ||
+      quantity > MAX_QUANTITY
+    ) {
       return socket.emit("errorMsg", "거래 수량을 확인해 주세요.");
     }
 
     const total = prices[id] * quantity;
 
     if (side === "buy") {
-      if (total > player.cash) return socket.emit("errorMsg", "현금이 부족합니다.");
+      if (total > player.cash) {
+        return socket.emit("errorMsg", "현금이 부족합니다.");
+      }
+
       player.cash -= total;
-      player.holdings[id] = (player.holdings[id] || 0) + quantity;
+
+      player.holdings[id] =
+        (player.holdings[id] || 0) + quantity;
     } else {
       const owned = player.holdings[id] || 0;
-      if (owned < quantity) return socket.emit("errorMsg", "보유 수량이 부족합니다.");
+
+      if (owned < quantity) {
+        return socket.emit("errorMsg", "보유 수량이 부족합니다.");
+      }
+
       player.cash += total;
       player.holdings[id] = owned - quantity;
     }
 
-    socket.emit("tradeSuccess",
+    socket.emit(
+      "tradeSuccess",
       side === "buy"
         ? `${companyNames[id]} ${quantity}주 매수 완료`
         : `${companyNames[id]} ${quantity}주 매도 완료`
@@ -352,13 +531,23 @@ io.on("connection", socket => {
     broadcast();
   });
 
+  // 연결 종료
   socket.on("disconnect", () => {
     admins.delete(socket.id);
     players.delete(socket.id);
+
     broadcast();
+
+    console.log("[DISCONNECTED]", socket.id);
   });
 });
 
+// 서버 실행
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Mock stock server running on port ${PORT}`);
+  console.log("--------------------------------");
+  console.log("꿈틀꿈틀 모의주식 서버 실행");
+  console.log("PORT:", PORT);
+  console.log("BUILD:", BUILD_ID);
+  console.log("HTML:", INDEX_FILE);
+  console.log("--------------------------------");
 });
