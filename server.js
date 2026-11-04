@@ -12,11 +12,11 @@ const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "change-me";
 
 const START_CASH = 300000;
-const FIRST_ROUND_SECONDS = 120;
-const ROUND_SECONDS = 90;
+const FIRST_ROUND_SECONDS = 60;
+const ROUND_SECONDS = 60;
 const MAX_QUANTITY = 10000;
 
-const BUILD_ID = "news-fix-2026-11-04";
+const BUILD_ID = "company-info-first-1min";
 
 const PUBLIC_DIR = path.join(__dirname, "public");
 const INDEX_FILE = path.join(__dirname, "index.html");
@@ -77,7 +77,6 @@ const companyNews = [
 
 let prices = { ...initialPrices };
 let previousPrices = { ...initialPrices };
-
 let seconds = FIRST_ROUND_SECONDS;
 let status = "waiting";
 
@@ -92,52 +91,30 @@ let latestNewsImpact = {
 const players = new Map();
 const admins = new Set();
 
-// 모든 페이지 응답의 캐시 방지
 app.use((req, res, next) => {
-  res.setHeader(
-    "Cache-Control",
-    "no-store, no-cache, must-revalidate, proxy-revalidate"
-  );
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", "0");
   next();
 });
 
-// 빌드 확인용
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
     build: BUILD_ID,
-    indexFile: INDEX_FILE,
     newsCount: news.length,
     gameStatus: status
   });
 });
 
-// 반드시 정적 파일 설정보다 먼저 HTML 제공
 app.get("/", (req, res) => {
-  res.sendFile(INDEX_FILE, err => {
-    if (err) {
-      console.error("[HTML ERROR]", err);
-      if (!res.headersSent) {
-        res.status(500).send("index.html 파일을 찾을 수 없습니다.");
-      }
-    }
-  });
+  res.sendFile(INDEX_FILE);
 });
 
 app.get("/index.html", (req, res) => {
-  res.sendFile(INDEX_FILE, err => {
-    if (err) {
-      console.error("[HTML ERROR]", err);
-      if (!res.headersSent) {
-        res.status(500).send("index.html 파일을 찾을 수 없습니다.");
-      }
-    }
-  });
+  res.sendFile(INDEX_FILE);
 });
 
-// 이미지, CSS 등 나머지 정적 파일 제공
 app.use(express.static(PUBLIC_DIR, {
   etag: false,
   maxAge: 0,
@@ -148,8 +125,7 @@ function getPlayerView(player) {
   let stockValue = 0;
 
   for (const id of Object.keys(player.holdings)) {
-    stockValue +=
-      (player.holdings[id] || 0) * (prices[id] || 0);
+    stockValue += (player.holdings[id] || 0) * (prices[id] || 0);
   }
 
   const assets = player.cash + stockValue;
@@ -182,7 +158,7 @@ function getState() {
     status,
     leaderboard,
     playerCount: players.size,
-    news: news.slice(0, 20)
+    news: news.slice()
   };
 }
 
@@ -191,9 +167,7 @@ function broadcast() {
 }
 
 function sendNews() {
-  console.log("[NEWS SENT]", news.length);
-
-  io.emit("newsUpdate", news.slice(0, 20));
+  io.emit("newsUpdate", news.slice());
   broadcast();
 }
 
@@ -201,7 +175,6 @@ function randomItem(array) {
   return array[Math.floor(Math.random() * array.length)];
 }
 
-// 뉴스 생성
 function generateNews() {
   const isEconomy = Math.random() < 0.35;
 
@@ -213,27 +186,25 @@ function generateNews() {
 
   if (isEconomy) {
     item = randomItem(economyNews);
-
     category = "경제";
     title = item[0];
     description = item[1];
 
-    latestNewsImpact.market = item[2] * 0.015;
+    latestNewsImpact.market += item[2] * 0.015;
   } else {
     const id = randomItem(Object.keys(companyNames));
-
     item = randomItem(companyNews);
 
     category = "기업";
     target = id;
-
     title = `${companyNames[id]}, ${item[0]}`;
     description = item[1];
 
-    latestNewsImpact.stocks[id] = item[2] * 0.045;
+    latestNewsImpact.stocks[id] =
+      (latestNewsImpact.stocks[id] || 0) + item[2] * 0.045;
   }
 
-  const newItem = {
+  news.push({
     id: ++newsSequence,
     category,
     target,
@@ -241,18 +212,21 @@ function generateNews() {
     description,
     sentiment: item[2],
     time: new Date().toLocaleTimeString("ko-KR")
-  };
-
-  news.unshift(newItem);
-
-  if (news.length > 20) {
-    news.pop();
-  }
-
-  console.log("[NEWS GENERATED]", newItem);
+  });
 }
 
-// 주가 변동
+function replaceNewsBatch() {
+  news = [];
+
+  const count = Math.floor(Math.random() * 4) + 1;
+
+  for (let i = 0; i < count; i++) {
+    generateNews();
+  }
+
+  console.log(`[NEWS REPLACED] ${count}개`);
+}
+
 function changePrices() {
   previousPrices = { ...prices };
 
@@ -270,9 +244,7 @@ function changePrices() {
 
     prices[id] = Math.max(
       1000,
-      Math.round(
-        prices[id] * (1 + totalChange) / 100
-      ) * 100
+      Math.round(prices[id] * (1 + totalChange) / 100) * 100
     );
   }
 
@@ -282,11 +254,9 @@ function changePrices() {
   };
 }
 
-// 게임 초기화
 function resetGame() {
   prices = { ...initialPrices };
   previousPrices = { ...initialPrices };
-
   seconds = FIRST_ROUND_SECONDS;
   status = "waiting";
 
@@ -301,7 +271,6 @@ function resetGame() {
   players.clear();
 }
 
-// CSV 생성
 function makeCSV() {
   const rows = [
     ["순위", "닉네임", "현금", "보유주식 평가액", "총자산", "수익률"]
@@ -325,7 +294,6 @@ function makeCSV() {
   ).join("\n");
 }
 
-// CSV 다운로드
 app.get("/api/results.csv", (req, res) => {
   if (!admins.has(req.query.socketId)) {
     return res.status(403).send("관리자 권한이 필요합니다.");
@@ -340,7 +308,6 @@ app.get("/api/results.csv", (req, res) => {
   res.send(makeCSV());
 });
 
-// 게임 시간 관리
 setInterval(() => {
   if (status !== "running") return;
 
@@ -348,11 +315,9 @@ setInterval(() => {
 
   if (seconds <= 0) {
     changePrices();
-
-    generateNews();
+    replaceNewsBatch();
 
     seconds = ROUND_SECONDS;
-
     sendNews();
     return;
   }
@@ -360,18 +325,12 @@ setInterval(() => {
   broadcast();
 }, 1000);
 
-// Socket.IO
 io.on("connection", socket => {
-  console.log("[CONNECTED]", socket.id);
-
   socket.emit("state", getState());
-  socket.emit("newsUpdate", news.slice(0, 20));
+  socket.emit("newsUpdate", news.slice());
 
-  // 참가
   socket.on("join", rawName => {
-    const name = String(rawName || "")
-      .trim()
-      .slice(0, 20);
+    const name = String(rawName || "").trim().slice(0, 20);
 
     if (!name) {
       return socket.emit("errorMsg", "닉네임을 입력해 주세요.");
@@ -396,75 +355,51 @@ io.on("connection", socket => {
     broadcast();
   });
 
-  // 관리자 로그인
   socket.on("adminLogin", password => {
     if (String(password || "") !== ADMIN_PASSWORD) {
-      return socket.emit(
-        "errorMsg",
-        "관리자 비밀번호가 올바르지 않습니다."
-      );
+      return socket.emit("errorMsg", "관리자 비밀번호가 올바르지 않습니다.");
     }
 
     admins.add(socket.id);
-
     socket.emit("adminAuth");
   });
 
-  // 게임 시작
   socket.on("adminStart", () => {
     if (!admins.has(socket.id)) {
       return socket.emit("errorMsg", "관리자 권한이 필요합니다.");
     }
 
     if (status === "finished") {
-      return socket.emit(
-        "errorMsg",
-        "게임 종료 후에는 초기화해야 합니다."
-      );
+      return socket.emit("errorMsg", "게임 종료 후에는 초기화해야 합니다.");
     }
 
     status = "running";
-
     seconds = FIRST_ROUND_SECONDS;
 
-    // 첫 뉴스 즉시 생성
-    if (news.length === 0) {
-      generateNews();
-    }
+    // 게임 시작 시에는 뉴스를 생성하지 않음
+    // 첫 60초가 지나면 주가 변동 후 새 뉴스 생성
 
-    // 모든 참가자에게 뉴스와 게임 상태 전송
     sendNews();
-
-    console.log("[GAME STARTED]");
   });
 
-  // 게임 종료
   socket.on("adminStop", () => {
     if (!admins.has(socket.id)) {
       return socket.emit("errorMsg", "관리자 권한이 필요합니다.");
     }
 
     status = "finished";
-
     broadcast();
-
-    console.log("[GAME FINISHED]");
   });
 
-  // 전체 초기화
   socket.on("adminReset", () => {
     if (!admins.has(socket.id)) {
       return socket.emit("errorMsg", "관리자 권한이 필요합니다.");
     }
 
     resetGame();
-
     sendNews();
-
-    console.log("[GAME RESET]");
   });
 
-  // 매수 및 매도
   socket.on("trade", data => {
     const player = players.get(socket.id);
 
@@ -473,10 +408,7 @@ io.on("connection", socket => {
     }
 
     if (status !== "running") {
-      return socket.emit(
-        "errorMsg",
-        "게임이 시작된 뒤 거래할 수 있습니다."
-      );
+      return socket.emit("errorMsg", "게임이 시작된 뒤 거래할 수 있습니다.");
     }
 
     const id = String(data?.id || "");
@@ -507,7 +439,6 @@ io.on("connection", socket => {
       }
 
       player.cash -= total;
-
       player.holdings[id] =
         (player.holdings[id] || 0) + quantity;
     } else {
@@ -531,23 +462,15 @@ io.on("connection", socket => {
     broadcast();
   });
 
-  // 연결 종료
   socket.on("disconnect", () => {
     admins.delete(socket.id);
     players.delete(socket.id);
-
     broadcast();
-
-    console.log("[DISCONNECTED]", socket.id);
   });
 });
 
-// 서버 실행
 server.listen(PORT, "0.0.0.0", () => {
-  console.log("--------------------------------");
   console.log("꿈틀꿈틀 모의주식 서버 실행");
   console.log("PORT:", PORT);
   console.log("BUILD:", BUILD_ID);
-  console.log("HTML:", INDEX_FILE);
-  console.log("--------------------------------");
 });
