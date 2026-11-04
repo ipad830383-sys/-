@@ -16,18 +16,10 @@ const ROUND_SECONDS = 90;
 const MAX_QUANTITY = 10000;
 
 const initialPrices = {
-  NOVA: 42000,
-  GREEN: 31500,
-  PIXEL: 18700,
-  WAVE: 52900,
-  MINT: 24100,
-  ROBOT: 73400,
-  SPACE: 45200,
-  MEDI: 36800,
-  ECO: 28500,
-  FIN: 61000,
-  MEDIA: 22300,
-  HOME: 39600
+  NOVA: 42000, GREEN: 31500, PIXEL: 18700,
+  WAVE: 52900, MINT: 24100, ROBOT: 73400,
+  SPACE: 45200, MEDI: 36800, ECO: 28500,
+  FIN: 61000, MEDIA: 22300, HOME: 39600
 };
 
 const companyNames = {
@@ -333,15 +325,11 @@ function makeCSV() {
 
   return (
     "\uFEFF" +
-    rows
-      .map(row =>
-        row
-          .map(value =>
-            `"${String(value).replaceAll('"', '""')}"`
-          )
-          .join(",")
-      )
-      .join("\n")
+    rows.map(row =>
+      row.map(value =>
+        `"${String(value).replaceAll('"', '""')}"`
+      ).join(",")
+    ).join("\n")
   );
 }
 
@@ -361,6 +349,7 @@ app.get("/api/results.csv", (req, res) => {
   res.send(makeCSV());
 });
 
+// 120초 후 첫 주가 변동, 이후 90초마다 반복
 setInterval(() => {
   if (status !== "running") return;
 
@@ -431,7 +420,6 @@ io.on("connection", socket => {
     status = "running";
     seconds = FIRST_ROUND_SECONDS;
 
-    // 게임 시작 즉시 첫 뉴스 생성
     if (news.length === 0) {
       generateNews();
     }
@@ -535,3 +523,4 @@ io.on("connection", socket => {
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Mock stock server running on port ${PORT}`);
 });
+
