@@ -4,175 +4,51 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>꿈틀꿈틀 모의주식</title>
-
 <style>
-* { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  background: #f4f5f7;
-  font-family: -apple-system, BlinkMacSystemFont, "Noto Sans KR", sans-serif;
-  color: #17181a;
-}
-
-.wrap {
-  max-width: 900px;
-  margin: auto;
-  padding: 16px;
-}
-
-.card {
-  background: #fff;
-  border-radius: 18px;
-  padding: 18px;
-  margin: 12px 0;
-  box-shadow: 0 2px 12px #0000000d;
-}
-
-h1 { margin: 0 0 5px; }
-h2 { font-size: 19px; }
-.muted { color: #777; font-size: 13px; }
-
-.stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.stat {
-  background: #f7f7f8;
-  border-radius: 13px;
-  padding: 13px;
-}
-
-.big {
-  font-size: 21px;
-  font-weight: 800;
-  margin-top: 4px;
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 13px 0;
-  border-bottom: 1px solid #eee;
-}
-
-.row:last-child { border: 0; }
-
-.actions {
-  display: flex;
-  gap: 5px;
-  align-items: center;
-}
-
-.actions input {
-  width: 85px;
-  min-width: 85px;
-}
-
-input, button {
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  font-size: 15px;
-}
-
-input {
-  min-width: 0;
-  background: white;
-  color: #17181a;
-}
-
-button {
-  border: 0;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.primary { background: #111; color: white; }
-.buy { background: #eaf1ff; color: #2363d1; }
-.sell { background: #ffeded; color: #d33; }
-.up { color: #d33; }
-.down { color: #2866c7; }
-
-#game { display: none; }
-#adminControls { display: none; }
-.stock-price { white-space: nowrap; }
-
-.news-item {
-  padding: 13px 0;
-  border-bottom: 1px solid #eee;
-}
-
-.news-item:last-child { border-bottom: 0; }
-
-.news-top {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-bottom: 6px;
-  flex-wrap: wrap;
-}
-
-.news-category {
-  background: #f0f0f0;
-  color: #555;
-  font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 20px;
-  font-weight: 700;
-}
-
-.news-positive {
-  color: #d33;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.news-negative {
-  color: #2866c7;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.news-neutral {
-  color: #777;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.news-title {
-  font-weight: 750;
-  margin-bottom: 5px;
-  line-height: 1.5;
-}
-
-.news-description {
-  color: #666;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.news-time {
-  color: #999;
-  font-size: 11px;
-  margin-top: 6px;
-}
-
-@media(max-width:600px) {
-  .stats { grid-template-columns: 1fr; }
-  .row { flex-wrap: wrap; }
-  .stock-info { width: 45%; }
-  .actions { width: 100%; }
-  .actions input { flex: 1; }
-  .actions button { flex: 1; }
+*{box-sizing:border-box}
+body{margin:0;background:#f4f5f7;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;color:#17181a}
+.wrap{max-width:900px;margin:auto;padding:16px}
+.card{background:#fff;border-radius:18px;padding:18px;margin:12px 0;box-shadow:0 2px 12px #0000000d}
+h1{margin:0 0 5px}
+h2{font-size:19px}
+.muted{color:#777;font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:#f7f7f8;border-radius:13px;padding:13px}
+.big{font-size:21px;font-weight:800;margin-top:4px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 0;border-bottom:1px solid #eee}
+.row:last-child{border:0}
+.actions{display:flex;gap:5px;align-items:center}
+.actions input{width:85px;min-width:85px}
+input,button{padding:10px;border:1px solid #ddd;border-radius:10px;font-size:15px}
+input{min-width:0;background:white;color:#17181a}
+button{border:0;font-weight:700;cursor:pointer}
+.primary{background:#111;color:white}
+.buy{background:#eaf1ff;color:#2363d1}
+.sell{background:#ffeded;color:#d33}
+.up{color:#d33}
+.down{color:#2866c7}
+#game,#adminControls{display:none}
+.stock-price{white-space:nowrap}
+.news-item{padding:13px 0;border-bottom:1px solid #eee}
+.news-item:last-child{border-bottom:0}
+.news-top{display:flex;align-items:center;gap:7px;margin-bottom:6px;flex-wrap:wrap}
+.news-category{background:#f0f0f0;color:#555;font-size:11px;padding:4px 8px;border-radius:20px;font-weight:700}
+.news-positive{color:#d33;font-size:12px;font-weight:700}
+.news-negative{color:#2866c7;font-size:12px;font-weight:700}
+.news-neutral{color:#777;font-size:12px;font-weight:700}
+.news-title{font-weight:750;margin-bottom:5px;line-height:1.5}
+.news-description{color:#666;font-size:13px;line-height:1.6}
+.news-time{color:#999;font-size:11px;margin-top:6px}
+@media(max-width:600px){
+  .stats{grid-template-columns:1fr}
+  .row{flex-wrap:wrap}
+  .stock-info{width:45%}
+  .actions{width:100%}
+  .actions input{flex:1}
+  .actions button{flex:1}
 }
 </style>
 </head>
-
 <body>
 <div class="wrap">
 
@@ -188,18 +64,9 @@ button {
     <div id="game">
       <p id="status"></p>
       <div class="stats">
-        <div class="stat">
-          총자산
-          <div id="assets" class="big">₩300,000</div>
-        </div>
-        <div class="stat">
-          수익률
-          <div id="ret" class="big">0.00%</div>
-        </div>
-        <div class="stat">
-          보유 현금
-          <div id="cash" class="big">₩300,000</div>
-        </div>
+        <div class="stat">총자산<div id="assets" class="big">₩300,000</div></div>
+        <div class="stat">수익률<div id="ret" class="big">0.00%</div></div>
+        <div class="stat">보유 현금<div id="cash" class="big">₩300,000</div></div>
       </div>
     </div>
   </div>
@@ -214,7 +81,7 @@ button {
     </div>
   </div>
 
-  <div class="card" id="stocks">
+  <div class="card">
     <h2>📊 종목</h2>
     <div id="stockList"></div>
   </div>
@@ -247,136 +114,125 @@ button {
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
-
 <script>
-const socket = io();
+const socket=io();
 
-let state = null;
-let stockRowsCreated = false;
-let isAdmin = false;
+let state=null;
+let stockRowsCreated=false;
+let isAdmin=false;
 
-// 종목별 입력 수량 저장
-const quantityValues = new Map();
+const quantityValues=new Map();
+const $=id=>document.getElementById(id);
+const won=n=>"₩"+Math.round(n).toLocaleString("ko-KR");
 
-const $ = id => document.getElementById(id);
-
-const won = n =>
-  "₩" + Math.round(n).toLocaleString("ko-KR");
-
-function escapeHTML(value) {
-  return String(value).replace(/[&<>"']/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
+function escapeHTML(value){
+  return String(value??"").replace(/[&<>"']/g,char=>({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#39;"
   })[char]);
 }
 
-function join() {
-  const name = $("name").value.trim();
+function join(){
+  const name=$("name").value.trim();
 
-  if (!name) {
+  if(!name){
     showMessage("닉네임을 입력해 주세요.");
     return;
   }
 
-  socket.emit("join", name);
+  socket.emit("join",name);
 }
 
-$("name").addEventListener("keydown", event => {
-  if (event.key === "Enter") join();
+$("name").addEventListener("keydown",event=>{
+  if(event.key==="Enter")join();
 });
 
-$("adminPassword").addEventListener("keydown", event => {
-  if (event.key === "Enter") adminLogin();
+$("adminPassword").addEventListener("keydown",event=>{
+  if(event.key==="Enter")adminLogin();
 });
 
-function fmt(x) {
-  return (
-    String(Math.floor(x / 60)).padStart(2, "0") +
-    ":" +
-    String(x % 60).padStart(2, "0")
-  );
+function fmt(x){
+  const seconds=Math.max(0,Number(x)||0);
+
+  return String(Math.floor(seconds/60)).padStart(2,"0")+":"+
+    String(seconds%60).padStart(2,"0");
 }
 
-function showMessage(message) {
-  $("msg").textContent = message;
+function showMessage(message){
+  $("msg").textContent=message;
 }
 
-socket.on("joined", () => {
-  $("login").style.display = "none";
-  $("game").style.display = "block";
+socket.on("joined",()=>{
+  $("login").style.display="none";
+  $("game").style.display="block";
   showMessage("게임 참가가 완료되었습니다.");
 });
 
-socket.on("adminAuth", () => {
-  isAdmin = true;
-  $("adminLogin").style.display = "none";
-  $("adminControls").style.display = "block";
+socket.on("adminAuth",()=>{
+  isAdmin=true;
+  $("adminLogin").style.display="none";
+  $("adminControls").style.display="block";
   showMessage("관리자 로그인에 성공했습니다.");
 });
 
-socket.on("errorMsg", message => {
+socket.on("errorMsg",message=>{
   showMessage(message);
 });
 
-socket.on("tradeSuccess", message => {
+socket.on("tradeSuccess",message=>{
   showMessage(message);
 });
 
-socket.on("state", newState => {
-  state = newState;
+socket.on("state",newState=>{
+  state=newState;
   render();
 });
 
 // 매수·매도
-function trade(id, side) {
-  const input = $("q_" + id);
+function trade(id,side){
+  const input=$("q_"+id);
 
-  if (!input) return;
+  if(!input)return;
 
-  const raw = input.value.trim();
+  const raw=input.value.trim();
 
-  if (!/^[0-9]+$/.test(raw)) {
+  if(!/^[0-9]+$/.test(raw)){
     showMessage("수량은 숫자로 입력해 주세요.");
     input.focus();
     return;
   }
 
-  const quantity = Number(raw);
+  const quantity=Number(raw);
 
-  if (
-    !Number.isSafeInteger(quantity) ||
-    quantity <= 0 ||
-    quantity > 10000
-  ) {
+  if(!Number.isSafeInteger(quantity)||quantity<=0||quantity>10000){
     showMessage("수량은 1~10,000주까지 입력할 수 있습니다.");
     input.focus();
     return;
   }
 
-  quantityValues.set(id, raw);
+  quantityValues.set(id,raw);
 
-  socket.emit("trade", {
+  socket.emit("trade",{
     id,
     side,
-    qty: quantity
+    qty:quantity
   });
 }
 
 // 종목 화면 생성
-function createStockRows() {
-  const stockList = $("stockList");
+function createStockRows(){
+  const stockList=$("stockList");
+  stockList.innerHTML="";
 
-  stockList.innerHTML = "";
+  for(const id of Object.keys(state.prices)){
+    const row=document.createElement("div");
+    row.className="row";
+    row.id="stock_"+id;
 
-  for (const id of Object.keys(state.prices)) {
-    const row = document.createElement("div");
-    row.className = "row";
-    row.id = "stock_" + id;
-
-    row.innerHTML = `
+    row.innerHTML=`
       <div class="stock-info">
         <b class="stock-name"></b>
         <div class="muted">${escapeHTML(id)}</div>
@@ -391,7 +247,7 @@ function createStockRows() {
           inputmode="numeric"
           pattern="[0-9]*"
           autocomplete="off"
-          value="${escapeHTML(quantityValues.get(id) || "1")}"
+          value="${escapeHTML(quantityValues.get(id)||"1")}"
           placeholder="수량"
           aria-label="${escapeHTML(id)} 거래 수량"
         >
@@ -401,79 +257,70 @@ function createStockRows() {
       </div>
     `;
 
-    row.querySelector(".stock-name").textContent =
-      state.companyNames[id] || id;
+    row.querySelector(".stock-name").textContent=
+      state.companyNames?.[id]||id;
 
-    const quantityInput = row.querySelector("#q_" + id);
+    const quantityInput=row.querySelector("#q_"+id);
 
-    quantityInput.addEventListener("input", () => {
-      quantityValues.set(id, quantityInput.value);
+    quantityInput.addEventListener("input",()=>{
+      quantityValues.set(id,quantityInput.value);
     });
 
-    row.querySelector(".buy").addEventListener("click", () => {
-      trade(id, "buy");
+    row.querySelector(".buy").addEventListener("click",()=>{
+      trade(id,"buy");
     });
 
-    row.querySelector(".sell").addEventListener("click", () => {
-      trade(id, "sell");
+    row.querySelector(".sell").addEventListener("click",()=>{
+      trade(id,"sell");
     });
 
     stockList.appendChild(row);
   }
 
-  stockRowsCreated = true;
+  stockRowsCreated=true;
 }
 
-// 주가만 갱신: 입력창은 건드리지 않음
-function updateStockRows() {
-  for (const id of Object.keys(state.prices)) {
-    const row = $("stock_" + id);
+// 주가 갱신: 수량 입력창은 건드리지 않음
+function updateStockRows(){
+  for(const id of Object.keys(state.prices)){
+    const row=$("stock_"+id);
 
-    if (!row) continue;
+    if(!row)continue;
 
-    const price = state.prices[id];
-    const previous = state.previousPrices[id];
+    const price=state.prices[id];
+    const previous=state.previousPrices?.[id]??price;
 
-    const priceElement = row.querySelector(".stock-price");
+    const priceElement=row.querySelector(".stock-price");
 
-    priceElement.textContent = won(price);
+    priceElement.textContent=won(price);
 
-    priceElement.className =
-      "stock-price " +
-      (
-        price > previous
-          ? "up"
-          : price < previous
-            ? "down"
-            : ""
-      );
+    priceElement.className="stock-price "+
+      (price>previous?"up":price<previous?"down":"");
   }
 }
 
 // 뉴스 화면
-function renderNews() {
-  const items = state.news || [];
+function renderNews(){
+  const items=state.news||[];
 
-  if (items.length === 0) {
-    $("newsList").innerHTML =
+  if(items.length===0){
+    $("newsList").innerHTML=
       '<div class="muted">게임 시작 후 새로운 뉴스가 생성됩니다.</div>';
     return;
   }
 
-  $("newsList").innerHTML = items.map(item => {
-    const sentimentText =
-      item.sentiment > 0
-        ? "긍정"
-        : item.sentiment < 0
-          ? "부정"
-          : "중립";
+  $("newsList").innerHTML=items.map(item=>{
+    const sentimentText=item.sentiment>0
+      ?"긍정"
+      :item.sentiment<0
+        ?"부정"
+        :"중립";
 
-    const sentimentClass =
-      item.sentiment > 0
-        ? "news-positive"
-        : item.sentiment < 0
-          ? "news-negative"
-          : "news-neutral";
+    const sentimentClass=item.sentiment>0
+      ?"news-positive"
+      :item.sentiment<0
+        ?"news-negative"
+        :"news-neutral";
 
     return `
       <div class="news-item">
@@ -486,7 +333,7 @@ function renderNews() {
             ${sentimentText}
           </span>
 
-          <span class="muted">
+          <span class="news-time">
             ${escapeHTML(item.time)}
           </span>
         </div>
@@ -504,102 +351,96 @@ function renderNews() {
 }
 
 // 전체 화면 갱신
-function render() {
-  if (!state) return;
+function render(){
+  if(!state)return;
 
-  const me = state.leaderboard.find(
-    player => player.id === socket.id
+  const me=(state.leaderboard||[]).find(
+    player=>player.id===socket.id
   );
 
-  if (me) {
-    $("assets").textContent = won(me.assets);
-    $("cash").textContent = won(me.cash);
+  if(me){
+    $("assets").textContent=won(me.assets);
+    $("cash").textContent=won(me.cash);
 
-    $("ret").textContent =
-      (me.returnRate >= 0 ? "+" : "") +
-      me.returnRate.toFixed(2) +
-      "%";
+    $("ret").textContent=
+      (me.returnRate>=0?"+":"")+
+      me.returnRate.toFixed(2)+"%";
 
-    $("ret").className =
-      "big " + (me.returnRate >= 0 ? "up" : "down");
+    $("ret").className=
+      "big "+(me.returnRate>=0?"up":"down");
   }
 
-  $("status").textContent =
-    state.status === "running"
-      ? `🟢 진행 중 · 다음 가격 변동 ${fmt(state.seconds)}`
-      : state.status === "finished"
-        ? "🔴 게임 종료"
-        : "🟡 대기 중";
+  $("status").textContent=
+    state.status==="running"
+      ?`🟢 진행 중 · 다음 가격 변동 ${fmt(state.seconds)}`
+      :state.status==="finished"
+        ?"🔴 게임 종료"
+        :"🟡 대기 중";
 
-  if (!stockRowsCreated) {
+  if(!stockRowsCreated){
     createStockRows();
   }
 
   updateStockRows();
   renderNews();
 
-  $("rank").innerHTML =
-    state.leaderboard.length
-      ? state.leaderboard.map((player, index) => `
-          <div class="row">
-            <span>
-              <b>${index + 1}위</b>
-              ${escapeHTML(player.name)}
-            </span>
+  $("rank").innerHTML=
+    state.leaderboard&&state.leaderboard.length
+      ?state.leaderboard.map((player,index)=>`
+        <div class="row">
+          <span>
+            <b>${index+1}위</b>
+            ${escapeHTML(player.name)}
+          </span>
 
-            <span>
-              ${won(player.assets)}
-              ·
-              <b class="${player.returnRate >= 0 ? "up" : "down"}">
-                ${player.returnRate >= 0 ? "+" : ""}
-                ${player.returnRate.toFixed(2)}%
-              </b>
-            </span>
-          </div>
-        `).join("")
-      : '<span class="muted">참가자를 기다리는 중...</span>';
+          <span>
+            ${won(player.assets)}
+            ·
+            <b class="${player.returnRate>=0?"up":"down"}">
+              ${player.returnRate>=0?"+":""}
+              ${player.returnRate.toFixed(2)}%
+            </b>
+          </span>
+        </div>
+      `).join("")
+      :'<span class="muted">참가자를 기다리는 중...</span>';
 }
 
 // 관리자
-function adminLogin() {
-  const password = $("adminPassword").value;
+function adminLogin(){
+  const password=$("adminPassword").value;
 
-  if (!password) {
+  if(!password){
     showMessage("관리자 비밀번호를 입력해 주세요.");
     return;
   }
 
-  socket.emit("adminLogin", password);
+  socket.emit("adminLogin",password);
 }
 
-function adminStart() {
+function adminStart(){
   socket.emit("adminStart");
 }
 
-function adminStop() {
+function adminStop(){
   socket.emit("adminStop");
 }
 
-function adminReset() {
-  if (confirm("전체 참가자를 초기화할까요?")) {
+function adminReset(){
+  if(confirm("전체 참가자를 초기화할까요?")){
     socket.emit("adminReset");
   }
 }
 
-function downloadCSV() {
-  if (!isAdmin) {
+function downloadCSV(){
+  if(!isAdmin){
     showMessage("관리자 로그인이 필요합니다.");
     return;
   }
 
-  const url =
-    "/api/results.csv?socketId=" +
-    encodeURIComponent(socket.id);
-
-  window.location.href = url;
+  const url="/api/results.csv?socketId="+encodeURIComponent(socket.id);
+  window.location.href=url;
 }
 </script>
-
 </body>
 </html>
-
