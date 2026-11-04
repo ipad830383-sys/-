@@ -535,34 +535,3 @@ io.on("connection", socket => {
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Mock stock server running on port ${PORT}`);
 });
-
-
-      if (owned < quantity) {
-        return socket.emit("errorMsg", "보유 수량이 부족합니다.");
-      }
-
-      player.cash += total;
-      player.holdings[id] = owned - quantity;
-    }
-
-    socket.emit(
-      "tradeSuccess",
-      side === "buy"
-        ? `${companyNames[id]} ${quantity}주 매수 완료`
-        : `${companyNames[id]} ${quantity}주 매도 완료`
-    );
-
-    broadcast();
-  });
-
-  socket.on("disconnect", () => {
-    admins.delete(socket.id);
-    players.delete(socket.id);
-    broadcast();
-  });
-});
-
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Mock stock server running on port ${PORT}`);
-});
-
