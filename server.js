@@ -19,7 +19,7 @@ const MAX_QUANTITY = 10000;
 const BUILD_ID = "news-fix-2026-11-04";
 
 const PUBLIC_DIR = path.join(__dirname, "public");
-const INDEX_FILE = path.join(PUBLIC_DIR, "index.html");
+const INDEX_FILE = path.join(__dirname, "index.html");
 
 const initialPrices = {
   NOVA: 42000,
