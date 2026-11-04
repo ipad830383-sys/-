@@ -11,7 +11,8 @@ const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "change-me";
 
 const START_CASH = 300000;
-const ROUND_SECONDS = 60;
+const FIRST_ROUND_SECONDS = 120;
+const ROUND_SECONDS = 90;
 const MAX_QUANTITY = 10000;
 
 const initialPrices = {
@@ -143,7 +144,7 @@ const companyNews = [
 let prices = { ...initialPrices };
 let previousPrices = { ...initialPrices };
 
-let seconds = ROUND_SECONDS;
+let seconds = FIRST_ROUND_SECONDS;
 let status = "waiting";
 
 let news = [];
@@ -212,7 +213,7 @@ function broadcast() {
 function resetGame() {
   prices = { ...initialPrices };
   previousPrices = { ...initialPrices };
-  seconds = ROUND_SECONDS;
+  seconds = FIRST_ROUND_SECONDS;
   status = "waiting";
 
   news = [];
@@ -366,8 +367,8 @@ setInterval(() => {
   seconds--;
 
   if (seconds <= 0) {
-    generateNews();
     changePrices();
+    generateNews();
     seconds = ROUND_SECONDS;
   }
 
@@ -428,7 +429,13 @@ io.on("connection", socket => {
     }
 
     status = "running";
-    seconds = ROUND_SECONDS;
+    seconds = FIRST_ROUND_SECONDS;
+
+    // 게임 시작 즉시 첫 뉴스 생성
+    if (news.length === 0) {
+      generateNews();
+    }
+
     broadcast();
   });
 
@@ -499,6 +506,36 @@ io.on("connection", socket => {
         (player.holdings[id] || 0) + quantity;
     } else {
       const owned = player.holdings[id] || 0;
+
+      if (owned < quantity) {
+        return socket.emit("errorMsg", "보유 수량이 부족합니다.");
+      }
+
+      player.cash += total;
+      player.holdings[id] = owned - quantity;
+    }
+
+    socket.emit(
+      "tradeSuccess",
+      side === "buy"
+        ? `${companyNames[id]} ${quantity}주 매수 완료`
+        : `${companyNames[id]} ${quantity}주 매도 완료`
+    );
+
+    broadcast();
+  });
+
+  socket.on("disconnect", () => {
+    admins.delete(socket.id);
+    players.delete(socket.id);
+    broadcast();
+  });
+});
+
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`Mock stock server running on port ${PORT}`);
+});
+
 
       if (owned < quantity) {
         return socket.emit("errorMsg", "보유 수량이 부족합니다.");
