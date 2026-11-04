@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "change-me";
 
 const START_CASH = 300000;
-const ROUND_SECONDS = 90;
+const ROUND_SECONDS = 60;
 
 const initialPrices = {
   NOVA: 42000,
@@ -156,7 +156,7 @@ function changePrices() {
   ) {
 
     const change =
-      Math.random() * 0.16 - 0.08;
+      Math.random() * 0.40 - 0.20;
 
     prices[id] =
       Math.max(
