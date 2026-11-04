@@ -5,48 +5,163 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>꿈틀꿈틀 모의주식</title>
+
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#f4f5f7;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;color:#17181a}
+
+body{
+  margin:0;
+  background:#f4f5f7;
+  font-family:-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;
+  color:#17181a
+}
+
 .wrap{max-width:900px;margin:auto;padding:16px}
-.card{background:#fff;border-radius:18px;padding:18px;margin:12px 0;box-shadow:0 2px 12px #0000000d}
+
+.card{
+  background:#fff;
+  border-radius:18px;
+  padding:18px;
+  margin:12px 0;
+  box-shadow:0 2px 12px #0000000d
+}
+
 h1{margin:0 0 5px}
 h2{font-size:19px}
+
 .muted{color:#777;font-size:13px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.stat{background:#f7f7f8;border-radius:13px;padding:13px}
-.big{font-size:21px;font-weight:800;margin-top:4px}
-.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 0;border-bottom:1px solid #eee}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px
+}
+
+.stat{
+  background:#f7f7f8;
+  border-radius:13px;
+  padding:13px
+}
+
+.big{
+  font-size:21px;
+  font-weight:800;
+  margin-top:4px
+}
+
+.row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:13px 0;
+  border-bottom:1px solid #eee
+}
+
 .row:last-child{border:0}
-.actions{display:flex;gap:5px;align-items:center}
+
+.actions{
+  display:flex;
+  gap:5px;
+  align-items:center
+}
+
 .actions input{width:85px;min-width:85px}
-input,button{padding:10px;border:1px solid #ddd;border-radius:10px;font-size:15px}
-input{min-width:0;background:white;color:#17181a}
-button{border:0;font-weight:700;cursor:pointer}
+
+input,button{
+  padding:10px;
+  border:1px solid #ddd;
+  border-radius:10px;
+  font-size:15px
+}
+
+input{
+  min-width:0;
+  background:white;
+  color:#17181a
+}
+
+button{
+  border:0;
+  font-weight:700;
+  cursor:pointer
+}
+
 .primary{background:#111;color:white}
 .buy{background:#eaf1ff;color:#2363d1}
 .sell{background:#ffeded;color:#d33}
+
 .up{color:#d33}
 .down{color:#2866c7}
+
 #game,#adminControls{display:none}
-.stock-price{white-space:nowrap;font-weight:750}
-.news-item{padding:13px 0;border-bottom:1px solid #eee}
+
+.stock-price{
+  font-weight:750;
+  text-align:right;
+  line-height:1.6;
+  white-space:normal
+}
+
+.news-item{
+  padding:13px 0;
+  border-bottom:1px solid #eee
+}
+
 .news-item:last-child{border-bottom:0}
-.news-top{display:flex;align-items:center;gap:7px;margin-bottom:6px;flex-wrap:wrap}
-.news-category{background:#f0f0f0;color:#555;font-size:11px;padding:4px 8px;border-radius:20px;font-weight:700}
-.news-title{font-weight:750;margin-bottom:5px;line-height:1.5}
-.news-description{color:#666;font-size:13px;line-height:1.6}
+
+.news-top{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin-bottom:6px;
+  flex-wrap:wrap
+}
+
+.news-category{
+  background:#f0f0f0;
+  color:#555;
+  font-size:11px;
+  padding:4px 8px;
+  border-radius:20px;
+  font-weight:700
+}
+
+.news-title{
+  font-weight:750;
+  margin-bottom:5px;
+  line-height:1.5
+}
+
+.news-description{
+  color:#666;
+  font-size:13px;
+  line-height:1.6
+}
+
 .news-time{color:#999;font-size:11px}
+
 @media(max-width:600px){
   .stats{grid-template-columns:1fr}
+
   .row{flex-wrap:wrap}
+
   .stock-info{width:45%}
-  .actions{width:100%}
+
+  .stock-price{
+    width:100%;
+    text-align:left;
+    order:2
+  }
+
+  .actions{width:100%;order:3}
+
   .actions input{flex:1}
   .actions button{flex:1}
 }
 </style>
 </head>
+
 <body>
 <div class="wrap">
 
@@ -61,10 +176,22 @@ button{border:0;font-weight:700;cursor:pointer}
 
     <div id="game">
       <p id="status"></p>
+
       <div class="stats">
-        <div class="stat">총자산<div id="assets" class="big">₩300,000</div></div>
-        <div class="stat">수익률<div id="ret" class="big">0.00%</div></div>
-        <div class="stat">보유 현금<div id="cash" class="big">₩300,000</div></div>
+        <div class="stat">
+          총자산
+          <div id="assets" class="big">₩300,000</div>
+        </div>
+
+        <div class="stat">
+          수익률
+          <div id="ret" class="big">0.00%</div>
+        </div>
+
+        <div class="stat">
+          보유 현금
+          <div id="cash" class="big">₩300,000</div>
+        </div>
       </div>
     </div>
   </div>
@@ -78,9 +205,11 @@ button{border:0;font-weight:700;cursor:pointer}
 
   <div class="card" id="newsCard">
     <h2>📰 실시간 경제·기업 뉴스</h2>
+
     <div class="muted" style="margin-bottom:10px">
       매 라운드마다 새로운 뉴스가 무작위로 생성됩니다.
     </div>
+
     <div id="newsList">
       <div class="muted">게임 시작 후 뉴스가 생성됩니다.</div>
     </div>
@@ -98,6 +227,7 @@ button{border:0;font-weight:700;cursor:pointer}
 
   <div class="card">
     <h2>🔐 관리자</h2>
+
     <div id="adminLogin">
       <input id="adminPassword" type="password" placeholder="관리자 비밀번호">
       <button class="primary" onclick="adminLogin()">로그인</button>
@@ -119,6 +249,7 @@ button{border:0;font-weight:700;cursor:pointer}
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
+
 <script>
 const socket=io();
 
@@ -127,7 +258,9 @@ let stockRowsCreated=false;
 let isAdmin=false;
 
 const quantityValues=new Map();
+
 const $=id=>document.getElementById(id);
+
 const won=n=>"₩"+Math.round(n).toLocaleString("ko-KR");
 
 function escapeHTML(value){
@@ -206,7 +339,9 @@ socket.on("state",newState=>{
 
 socket.on("newsUpdate",items=>{
   if(!state)state={};
+
   state.news=Array.isArray(items)?items:[];
+
   renderNews();
 });
 
@@ -242,10 +377,12 @@ function trade(id,side){
 
 function createStockRows(){
   const stockList=$("stockList");
+
   stockList.innerHTML="";
 
   for(const id of Object.keys(state.prices)){
     const row=document.createElement("div");
+
     row.className="row";
     row.id="stock_"+id;
 
@@ -297,35 +434,55 @@ function createStockRows(){
   stockRowsCreated=true;
 }
 
+/* 현재 주가 + 직전 변동 대비 등락 금액 + 등락률 */
 function updateStockRows(){
   if(!state?.prices)return;
 
   for(const id of Object.keys(state.prices)){
     const row=$("stock_"+id);
+
     if(!row)continue;
 
     const price=state.prices[id];
+
     const previous=state.previousPrices?.[id]??price;
 
     const change=price-previous;
-    const rate=previous>0
-      ?Math.abs(change/previous*100).toFixed(2)
-      :"0.00";
 
-    const arrow=change>0?"▲":change<0?"▼":"";
+    const rate=previous>0
+      ?change/previous*100
+      :0;
+
+    const arrow=
+      change>0?"▲":
+      change<0?"▼":"";
+
+    let changeText;
+
+    if(change>0){
+      changeText=
+        `▲ ${won(change)} (+${rate.toFixed(2)}%)`;
+    }else if(change<0){
+      changeText=
+        `▼ ${won(Math.abs(change))} (${rate.toFixed(2)}%)`;
+    }else{
+      changeText="0.00%";
+    }
 
     const priceElement=row.querySelector(".stock-price");
 
     priceElement.textContent=
-      `${won(price)} ${arrow} ${change!==0?rate+"%":""}`;
+      `${won(price)}  ${changeText}`;
 
     priceElement.className=
-      "stock-price "+(change>0?"up":change<0?"down":"");
+      "stock-price "+
+      (change>0?"up":change<0?"down":"");
   }
 }
 
 function renderNews(){
   const newsList=$("newsList");
+
   if(!newsList)return;
 
   const items=Array.isArray(state?.news)?state.news:[];
@@ -333,6 +490,7 @@ function renderNews(){
   if(items.length===0){
     newsList.innerHTML=
       '<div class="muted">새로운 뉴스가 생성되기를 기다리는 중입니다.</div>';
+
     return;
   }
 
@@ -358,12 +516,15 @@ function renderHoldings(me){
   if(holdings.length===0){
     holdingsList.innerHTML=
       '<div class="muted">아직 보유한 주식이 없습니다.</div>';
+
     return;
   }
 
   holdingsList.innerHTML=holdings.map(([id,quantity])=>{
     const name=state.companyNames?.[id]||id;
+
     const price=state.prices[id]||0;
+
     const value=price*quantity;
 
     return `
@@ -402,6 +563,7 @@ function render(){
 
   if(me){
     $("assets").textContent=won(me.assets);
+
     $("cash").textContent=won(me.cash);
 
     $("ret").textContent=
@@ -426,6 +588,7 @@ function render(){
   }
 
   updateStockRows();
+
   renderNews();
   renderRank();
 }
@@ -461,7 +624,9 @@ function downloadCSV(){
     return;
   }
 
-  const url="/api/results.csv?socketId="+encodeURIComponent(socket.id);
+  const url="/api/results.csv?socketId="+
+    encodeURIComponent(socket.id);
+
   window.location.href=url;
 }
 </script>
