@@ -72,15 +72,15 @@ button{border:0;font-weight:700;cursor:pointer}
     </div>
   </div>
 
-<div class="card" id="newsCard">
-  <h2>📰 실시간 경제·기업 뉴스</h2>
-  <div class="muted" style="margin-bottom:10px">
-    경제 상황과 기업 소식에 따라 주가가 변동합니다.
+  <div class="card" id="newsCard">
+    <h2>📰 실시간 경제·기업 뉴스</h2>
+    <div class="muted" style="margin-bottom:10px">
+      경제 상황과 기업 소식에 따라 주가가 변동합니다.
+    </div>
+    <div id="newsList">
+      <div class="muted">뉴스를 불러오는 중...</div>
+    </div>
   </div>
-  <div id="newsList">
-    <div class="muted">뉴스를 불러오는 중...</div>
-  </div>
-</div>
 
   <div class="card">
     <h2>📊 종목</h2>
@@ -166,6 +166,14 @@ function showMessage(message){
   $("msg").textContent=message;
 }
 
+socket.on("connect",()=>{
+  console.log("서버 연결 완료:",socket.id);
+});
+
+socket.on("disconnect",()=>{
+  showMessage("서버 연결이 끊겼습니다. 다시 연결하는 중입니다.");
+});
+
 socket.on("joined",()=>{
   $("login").style.display="none";
   $("game").style.display="block";
@@ -187,14 +195,16 @@ socket.on("tradeSuccess",message=>{
   showMessage(message);
 });
 
-socket.on("state", newState => {
-  state = newState;
+socket.on("state",newState=>{
+  state=newState;
   render();
 });
 
-socket.on("newsUpdate", items => {
-  if (!state) state = {};
-  state.news = Array.isArray(items) ? items : [];
+socket.on("newsUpdate",items=>{
+  if(!state)state={};
+
+  state.news=Array.isArray(items)?items:[];
+
   renderNews();
 });
 
@@ -287,8 +297,10 @@ function createStockRows(){
   stockRowsCreated=true;
 }
 
-// 주가 갱신: 수량 입력창은 건드리지 않음
+// 주가 갱신
 function updateStockRows(){
+  if(!state?.prices)return;
+
   for(const id of Object.keys(state.prices)){
     const row=$("stock_"+id);
 
@@ -308,26 +320,28 @@ function updateStockRows(){
 
 // 뉴스 화면
 function renderNews(){
-  const items=state.news||[];
+  const newsList=$("newsList");
+
+  if(!newsList)return;
+
+  const items=Array.isArray(state?.news)?state.news:[];
 
   if(items.length===0){
-    $("newsList").innerHTML=
-      '<div class="muted">게임 시작 후 새로운 뉴스가 생성됩니다.</div>';
+    newsList.innerHTML=
+      '<div class="muted">아직 등록된 뉴스가 없습니다.</div>';
     return;
   }
 
-  $("newsList").innerHTML=items.map(item=>{
-    const sentimentText=item.sentiment>0
-      ?"긍정"
-      :item.sentiment<0
-        ?"부정"
-        :"중립";
+  newsList.innerHTML=items.map(item=>{
+    const sentiment=Number(item.sentiment||0);
 
-    const sentimentClass=item.sentiment>0
-      ?"news-positive"
-      :item.sentiment<0
-        ?"news-negative"
-        :"news-neutral";
+    const sentimentText=
+      sentiment>0?"긍정":
+      sentiment<0?"부정":"중립";
+
+    const sentimentClass=
+      sentiment>0?"news-positive":
+      sentiment<0?"news-negative":"news-neutral";
 
     return `
       <div class="news-item">
@@ -357,6 +371,18 @@ function renderNews(){
   }).join("");
 }
 
+// 순위 화면
+function renderRank(){
+  const leaderboard=state?.leaderboard||[];
+
+  $("rank").innerHTML=leaderboard.map((player,index)=>`
+    <div class="row">
+      <b>${index+1}위 ${escapeHTML(player.name)}</b>
+      <span>${won(player.assets)}</span>
+    </div>
+  `).join("")||'<div class="muted">참가자가 없습니다.</div>';
+}
+
 // 전체 화면 갱신
 function render(){
   if(!state)return;
@@ -384,47 +410,13 @@ function render(){
         ?"🔴 게임 종료"
         :"🟡 대기 중";
 
-  if(!stockRowsCreated){
+  if(!stockRowsCreated&&state.prices){
     createStockRows();
   }
 
   updateStockRows();
- function renderNews() {
-  const newsList = $("newsList");
-
-  if (!newsList) return;
-
-  const items = Array.isArray(state?.news) ? state.news : [];
-
-  if (items.length === 0) {
-    newsList.innerHTML =
-      '<div class="muted">아직 등록된 뉴스가 없습니다.</div>';
-    return;
-  }
-
-  newsList.innerHTML = items.map(item => {
-    const sentiment = Number(item.sentiment || 0);
-
-    const sentimentText =
-      sentiment > 0 ? "긍정" :
-      sentiment < 0 ? "부정" : "중립";
-
-    const sentimentClass =
-      sentiment > 0 ? "news-positive" :
-      sentiment < 0 ? "news-negative" : "news-neutral";
-
-    return `
-      <div class="news-item">
-        <div class="news-top">
-          <span class="news-category">${escapeHTML(item.category)}</span>
-          <span class="${sentimentClass}">${sentimentText}</span>
-          <span class="news-time">${escapeHTML(item.time)}</span>
-        </div>
-        <div class="news-title">${escapeHTML(item.title)}</div>
-        <div class="news-description">${escapeHTML(item.description)}</div>
-      </div>
-    `;
-  }).join("");
+  renderNews();
+  renderRank();
 }
 
 // 관리자
