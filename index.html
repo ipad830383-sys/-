@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="ko">
 <head>
@@ -71,15 +72,15 @@ button{border:0;font-weight:700;cursor:pointer}
     </div>
   </div>
 
-  <div class="card">
-    <h2>📰 실시간 경제·기업 뉴스</h2>
-    <div class="muted" style="margin-bottom:10px">
-      경제 상황과 기업 소식에 따라 주가가 변동합니다.
-    </div>
-    <div id="newsList">
-      <div class="muted">게임 시작 후 새로운 뉴스가 생성됩니다.</div>
-    </div>
+<div class="card" id="newsCard">
+  <h2>📰 실시간 경제·기업 뉴스</h2>
+  <div class="muted" style="margin-bottom:10px">
+    경제 상황과 기업 소식에 따라 주가가 변동합니다.
   </div>
+  <div id="newsList">
+    <div class="muted">뉴스를 불러오는 중...</div>
+  </div>
+</div>
 
   <div class="card">
     <h2>📊 종목</h2>
@@ -186,9 +187,15 @@ socket.on("tradeSuccess",message=>{
   showMessage(message);
 });
 
-socket.on("state",newState=>{
-  state=newState;
+socket.on("state", newState => {
+  state = newState;
   render();
+});
+
+socket.on("newsUpdate", items => {
+  if (!state) state = {};
+  state.news = Array.isArray(items) ? items : [];
+  renderNews();
 });
 
 // 매수·매도
@@ -382,28 +389,42 @@ function render(){
   }
 
   updateStockRows();
-  renderNews();
+ function renderNews() {
+  const newsList = $("newsList");
 
-  $("rank").innerHTML=
-    state.leaderboard&&state.leaderboard.length
-      ?state.leaderboard.map((player,index)=>`
-        <div class="row">
-          <span>
-            <b>${index+1}위</b>
-            ${escapeHTML(player.name)}
-          </span>
+  if (!newsList) return;
 
-          <span>
-            ${won(player.assets)}
-            ·
-            <b class="${player.returnRate>=0?"up":"down"}">
-              ${player.returnRate>=0?"+":""}
-              ${player.returnRate.toFixed(2)}%
-            </b>
-          </span>
+  const items = Array.isArray(state?.news) ? state.news : [];
+
+  if (items.length === 0) {
+    newsList.innerHTML =
+      '<div class="muted">아직 등록된 뉴스가 없습니다.</div>';
+    return;
+  }
+
+  newsList.innerHTML = items.map(item => {
+    const sentiment = Number(item.sentiment || 0);
+
+    const sentimentText =
+      sentiment > 0 ? "긍정" :
+      sentiment < 0 ? "부정" : "중립";
+
+    const sentimentClass =
+      sentiment > 0 ? "news-positive" :
+      sentiment < 0 ? "news-negative" : "news-neutral";
+
+    return `
+      <div class="news-item">
+        <div class="news-top">
+          <span class="news-category">${escapeHTML(item.category)}</span>
+          <span class="${sentimentClass}">${sentimentText}</span>
+          <span class="news-time">${escapeHTML(item.time)}</span>
         </div>
-      `).join("")
-      :'<span class="muted">참가자를 기다리는 중...</span>';
+        <div class="news-title">${escapeHTML(item.title)}</div>
+        <div class="news-description">${escapeHTML(item.description)}</div>
+      </div>
+    `;
+  }).join("");
 }
 
 // 관리자
