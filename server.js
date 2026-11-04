@@ -16,24 +16,16 @@ const FIRST_ROUND_SECONDS = 60;
 const ROUND_SECONDS = 60;
 const MAX_QUANTITY = 10000;
 
-const BUILD_ID = "company-info-first-1min";
+const BUILD_ID = "news-reset-1min";
 
 const PUBLIC_DIR = path.join(__dirname, "public");
 const INDEX_FILE = path.join(__dirname, "index.html");
 
 const initialPrices = {
-  NOVA: 42000,
-  GREEN: 31500,
-  PIXEL: 18700,
-  WAVE: 52900,
-  MINT: 24100,
-  ROBOT: 73400,
-  SPACE: 45200,
-  MEDI: 36800,
-  ECO: 28500,
-  FIN: 61000,
-  MEDIA: 22300,
-  HOME: 39600
+  NOVA: 42000, GREEN: 31500, PIXEL: 18700,
+  WAVE: 52900, MINT: 24100, ROBOT: 73400,
+  SPACE: 45200, MEDI: 36800, ECO: 28500,
+  FIN: 61000, MEDIA: 22300, HOME: 39600
 };
 
 const companyNames = {
@@ -108,7 +100,11 @@ app.get("/health", (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  res.sendFile(INDEX_FILE);
+  res.sendFile(INDEX_FILE, err => {
+    if (err && !res.headersSent) {
+      res.status(500).send("index.html 파일을 찾을 수 없습니다.");
+    }
+  });
 });
 
 app.get("/index.html", (req, res) => {
@@ -213,8 +209,11 @@ function generateNews() {
     sentiment: item[2],
     time: new Date().toLocaleTimeString("ko-KR")
   });
+
+  console.log("[NEWS GENERATED]", title);
 }
 
+// 이전 뉴스를 지우고 새 뉴스 1~4개 생성
 function replaceNewsBatch() {
   news = [];
 
@@ -315,6 +314,8 @@ setInterval(() => {
 
   if (seconds <= 0) {
     changePrices();
+
+    // 가격 변동과 동시에 기존 뉴스 삭제 후 새 뉴스 생성
     replaceNewsBatch();
 
     seconds = ROUND_SECONDS;
@@ -376,8 +377,9 @@ io.on("connection", socket => {
     status = "running";
     seconds = FIRST_ROUND_SECONDS;
 
-    // 게임 시작 시에는 뉴스를 생성하지 않음
-    // 첫 60초가 지나면 주가 변동 후 새 뉴스 생성
+    if (news.length === 0) {
+      replaceNewsBatch();
+    }
 
     sendNews();
   });
@@ -473,4 +475,5 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log("꿈틀꿈틀 모의주식 서버 실행");
   console.log("PORT:", PORT);
   console.log("BUILD:", BUILD_ID);
+  console.log("HTML:", INDEX_FILE);
 });
